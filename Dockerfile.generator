@@ -1,0 +1,38 @@
+FROM eclipse-temurin:17-jre-jammy AS jre-build
+
+FROM python:3.12-slim
+
+# Prepare Java Environment
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Copy JRE from Stage 1 to keep the image slim
+COPY --from=jre-build /opt/java/openjdk /opt/java/openjdk
+
+# Install system dependencies for PDF generation (poppler-utils) and db drivers
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirement files first for layer caching
+COPY requirements_*.txt ./
+
+# Combine and install dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    cat requirements_*.txt > all_reqs.txt && \
+    pip install --no-cache-dir -r all_reqs.txt || echo "Requirements installation encountered errors, proceeding..."
+
+# Copy the application source code
+COPY . .
+
+# Set PYTHONPATH so the src and skills directory is recognized
+ENV PYTHONPATH=/app/src:/app/.agents/skills
+
+# Run-to-completion entrypoint
+ENTRYPOINT ["python", ".agents/skills/orchestrating-clinical-scenarios/scripts/dispatch_documents.py"]
+# Provide a default argument, but allow overriding via docker compose command
+CMD ["--patients", "5"]

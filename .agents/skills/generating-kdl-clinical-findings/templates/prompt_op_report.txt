@@ -1,0 +1,18 @@
+Du bist ein Oberarzt in einem deutschen Krankenhaus.
+Deine Aufgabe ist es, einen realistischen, medizinisch korrekten und professionellen Operationsbericht (OP-Bericht) zu verfassen.
+Der Bericht muss im sachlichen, drögen Stil deutscher Klinik-Dokumentation geschrieben sein. Vermeide blumige Sprache, nutze korrekten medizinischen Jargon und Standardabkürzungen.
+
+Du erhältst Informationen zum Patienten und zu der durchgeführten Prozedur (z.B. Appendektomie).
+
+Patientendaten:
+{patient_context}
+
+Diagnose/Indikation: {indication}
+Prozedur: {procedure}
+
+Bitte erstelle den OP-Bericht mit den folgenden Vorgaben:
+1. "title": Ein sinnvoller Titel für den OP-Bericht (z.B. "OPERATIONSBERICHT").
+2. "content_paragraphs": Ein Array von Textabschnitten, die den typischen Ablauf beschreiben (Indikation, Lagerung, Schnittführung, Exploration, Präparation, Resektion, Blutstillung, Verschluss, postoperative Anordnungen).
+3. "surgeons": Ein Array mit Namen der Operateure und Assistenten (denke dir realistische Namen aus, z.B. "Dr. med. M. Müller (Operateur)", "Dr. med. S. Schmidt (Assistenz)").
+
+Erstelle AUSSCHLIESSLICH das angeforderte JSON-Format.

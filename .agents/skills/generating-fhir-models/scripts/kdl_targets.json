@@ -1,0 +1,1917 @@
+[
+  {
+    "code": "AB060103",
+    "name": "Laborbefund intern",
+    "standard": "Abrechnungsstandard gemäß InEK/DRG-Vorgaben und §301 SGB V Datensatz"
+  },
+  {
+    "code": "AB060104",
+    "name": "Konsilbericht intern",
+    "standard": "Abrechnungsstandard gemäß InEK/DRG-Vorgaben und §301 SGB V Datensatz"
+  },
+  {
+    "code": "AD010101",
+    "name": "Ärztliche Stellungnahme",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010102",
+    "name": "Krankheitserreger, unerwünschte Ereig",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010103",
+    "name": "Entlassungsbericht intern",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010104",
+    "name": "schriftliche Einwilligung, die stationäre Behandlung vorzeitig gegen ärztlichen Rat abzubrechen. Entlassungsbericht extern",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010105",
+    "name": "individuelle Kostenerstellung der erbrachten Leistungen an den jeweiligen Kostenträger. Reha-Bericht",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010106",
+    "name": "Konsilbericht extern",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010107",
+    "name": "Verlegungsbericht intern",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010108",
+    "name": "Pflegevisite Vorläufiger Arztbericht",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010109",
+    "name": "Ärztlicher Befundbericht",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010110",
+    "name": "Ärztlicher Verlaufsbericht",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010111",
+    "name": "Ambulanzbrief",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010112",
+    "name": "(Krebsfrüherkennung ZervixKarzinom) und 40 (Krebsfrüherkennung Männer) Kurzarztbrief",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010113",
+    "name": "Nachschaubericht",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD010199",
+    "name": "Die Notation der Resteklassen endet immer auf *99. Damit steht die Restklasse immer an letzter Position der Unterklasse und es ist problemlos möglich, weitere spezifische Dokumentenklassen einer Unterklasse hinzuzufügen. Notation Bezeichnung Dokumentenklasse",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020101",
+    "name": "buch Arbeitsunfähigkeitsbescheinigung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020102",
+    "name": "Anga",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020103",
+    "name": "Todesbescheinigung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020104",
+    "name": "Ärztliche Bescheinigung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020105",
+    "name": "Befund des aktuellen Zustands in der Notaufnahme (inkl. Triage). Notfall-/ Vertretungsschein",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020106",
+    "name": "Sachauflistung zu Gegenständen, die bei Aufnahme mit in die Einrichtung gebracht wurden. Wiedereingliederungsplan",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020107",
+    "name": "nisse über die Messung der Funktionalität des Gehörs. Aufenthaltsbescheinigung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020108",
+    "name": "Geburtsanzeige",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020199",
+    "name": "Sonstiger Arztbericht",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020201",
+    "name": "operative Visite Anatomische Skizze",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020202",
+    "name": "Blutgruppenausweis",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020203",
+    "name": "ben des Sozialdienstes zu empfohlenen Maßnahmen. Beinhaltet auch Notizen des Gesprächsverlaufes und festgelegte Vereinbarungen. Bericht Gesundheitsuntersuchung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020204",
+    "name": "Krankenbeförderung) Krebsfrüherkennung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020205",
+    "name": "ben zur Meldung von Krebserkrankungen an das Krebsregister. Messblatt",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020206",
+    "name": "ben zum Umfang einer Behandlung und die damit verbundenen Rechte und Pflichten zwischen Einrichtung und Patient. Belastungserprobung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020207",
+    "name": "Ärztlicher Fragebogen",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020208",
+    "name": "Befund extern",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD020299",
+    "name": "Sonstige Bescheinigung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD060101",
+    "name": "relevanten Daten zu einer angeforderten Blutkonserve. Konsilanforderung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD060103",
+    "name": "vor Aufnahme einer Psychotherapie) Konsilbericht intern",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD060104",
+    "name": "Anforderung/Anmeldung einer Befundung durch einen Facharzt aus einem weiteren Leistungsbereich. Konsilbericht extern",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD060105",
+    "name": "Visitenprotokoll",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD060107",
+    "name": "Teambesprechungsprotokoll",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD060108",
+    "name": "persönliche und organisatorische Anga",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AD060199",
+    "name": "Sonstige ärztliche Befunderhebung",
+    "standard": "DIN 5008 Geschäftsbriefnorm, KBV/gematik eArztbrief-Richtlinie"
+  },
+  {
+    "code": "AM010101",
+    "name": "von Blut oder Blutbestandteilen an den Empfänger. Bogen abrechnungsrelevanter Diagnosen/ Prozeduren",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010102",
+    "name": "tologie G-AEP Kriterien",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010103",
+    "name": "Kostenübernahmeverlängerung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010104",
+    "name": "Medizinischen Dienst), Muster 86 (Weiterleitungsbogen für angeforderte Befunde an den MDK) Schriftverkehr MDK Kasse",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010105",
+    "name": "aufga",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010106",
+    "name": "ben zur Art und Dauer der durchgeführten Wiederbelebungsmaßnahme. Rechnung ambulante/ stationäre Behandlung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010107",
+    "name": "Ergebnis einer Begutachtung durch den Medizinischen Dienst der Krankenkassen. MDK Prüfauftrag",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010108",
+    "name": "MDK Gutachten",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010199",
+    "name": "Sonstige Fallbesprechung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010201",
+    "name": "Anfrage für eine gezielte professionelle Behandlung psychischer Störungen. Antrag auf Rehabilitation",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010202",
+    "name": "Rezept, Psychologische Therapieanordnung, Verordnung von Krankenhausbehandlung, Postoperative Verordnung, Bestrahlungsverordnung Antrag auf Betreuung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010203",
+    "name": "Anfrage auf eine gesetzliche Vormundschaft durch das Gericht. Antrag auf gesetzliche Unterbringung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010204",
+    "name": "Verlängerungsantrag",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010205",
+    "name": "Antrag auf Psychotherapie",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010206",
+    "name": "Leistungen, welche durch die Pflegeversicherung übernommen werden sollen. Bsp.: Pflegegeld, Pflegehilfsmittel. Antrag auf Pflegeeinstufung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010207",
+    "name": "Kostenübernahmeantrag",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010208",
+    "name": "Antrag zur Inanspruchnahme einer begrenzten oder vollstationären Pflege einer pflegebedürftigen Person. Antrag auf Leistungen der Pflegeversicherung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010209",
+    "name": "Anfrage bei Gericht auf Unterbringung in eine geschlossene Einrichtung durch einen Arzt, wenn eine Eigenund Fremdgefährdung besteht. Antrag auf Kurzzeitpflege",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010299",
+    "name": "Sonstige Abrechnungsdokumentation",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010301",
+    "name": "Aufklärungsbogen klassiert. Bisherige Erfahrungen",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010302",
+    "name": "gen zur Kontrolle des Blutzuckers über einen bestimmten Zeitraum. Diagnostischer Aufklärungsbogen",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010303",
+    "name": "Operationsaufklärungsbogen",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010304",
+    "name": "Anweisung, die Akte/Daten des Mandanten zu löschen (Art. 17 DSGVO). Aufklärungsbogen Therapie",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM010399",
+    "name": "Sonstiger Antrag",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM030101",
+    "name": "Bericht bzw. eine Zusammenfassung eines Patientenfalls bezüglich der nachstationären Betreuung oder weiteren Behandlung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM030102",
+    "name": "ben über Voraussetzungen, den Ablauf oder erforderliche bildgebende Diagnostiken. Erfolgte Durchführungen werden gekennzeichnet. Checkliste Entlassung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM030103",
+    "name": "Entlassungsplan",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM030104",
+    "name": "Patientenlaufzettel",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM030199",
+    "name": "Anspruchsberechtigung) Sonstige Checkliste Administration",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM050101",
+    "name": "Datenschutzerklärung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM050104",
+    "name": "Einschätzung eines Patienten durch den Sozialdienst. Einverständniserklärung Abrechnung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM050105",
+    "name": "schriftliche Erlaubnis, sensible Daten zu Abrechnungszwecken an Dritte weiterzugeben. Einverständniserklärung Behandlung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM050106",
+    "name": "zur Teilnahme an einer Studie. Einwilligung und Datenschutzerklärung Entlassungsmanagement",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM050107",
+    "name": "Gutachten, Schriftverkehr MDK Arzt Schweigepflichtentbindung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM050108",
+    "name": "nisse einer Untersuchung bei der Körperhöhlen und Hohlorgane von innen bildlich dargestellt und ausgewertet werden. Entlassung gegen ärztlichen",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM050109",
+    "name": "stationäre Aufenthalt stattgefunden hat. Aufforderung zur Herausgabe der medizinischen Dokumentation",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM050110",
+    "name": "Mandanten herauszuge",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM050199",
+    "name": "Notfallambulanz Sonstige Einwilligung/ Erklärung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160101",
+    "name": "dann sinnvoll, wenn anhand dieser die verwendete Klasse leichter nachvollziehbar sein soll. Beispiel 2 »Interpretation KDL-Kode« In einer digitalen Patientenakte sind folgende KDL-Kodes verschlüsselt",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160102",
+    "name": "nisse einer Nachsorgeuntersuchung nach dem Einsetzen eines Defibrillators auf seine Funktion. Impfausweis",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160103",
+    "name": "läufige Fassung des Entlassungsberichtes. Vorsorgevollmacht",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160104",
+    "name": "Nachweis über Terminvereinbarungen, durchgeführte Diagnostiken, Behandlungen o.ä. während des Aufenthaltes. Patientenverfügung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160105",
+    "name": "ben zu zusätzlich gewählten Leistungen, während einer Behandlung, zwischen Einrichtung und Patient. Wertgegenständeverwaltung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160106",
+    "name": "Nachweis über den aktuellen Verbleib sowie den Aktenlauf. Allergiepass",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160107",
+    "name": "Herzschrittmacherausweis",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160108",
+    "name": "ben, in dem alle relevanten Daten zum Schwangerschaftsverlauf erfasst werden. Nachlassprotokoll",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160109",
+    "name": "Untersuchung, bei der Schnittbilder von Knochen und Weichteilen im menschlichen Körper, mit Hilfe von Magnetfeldern, bildlich dargestellt und ausgewertet werden. Mutterpass (Kopie)",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160110",
+    "name": "Augeninnendruck Ausweiskopie",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160111",
+    "name": "ben zu durchgeführten Impfungen mit Angaben zur Charge. ImplantatAusweis",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160112",
+    "name": "Anweisung einer Bestrahlungstherapie zur Behandlung. Betreuerausweis",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160199",
+    "name": "ben, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können. Sonstiges patienteneigenes Dokument",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160201",
+    "name": "Belehrung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160202",
+    "name": "Informationsblatt",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160203",
+    "name": "Hinweise, die für eine Behandlung oder stationären Aufenthalt notwendig sind. Informationsblatt Entlassungsmanagement",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160299",
+    "name": "Sonstiges Patienteninformationsblatt",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160301",
+    "name": "Beispiel 1 »Anwendung der Resteklassen« Der Leistungserbringer erstellt für seine Einrichtung ein neues Formular für die »Poststationäre Verordnung einer alternativen Behandlungsmethode«",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160302",
+    "name": "Heil-/Hilfsmittelverordnung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160303",
+    "name": "Stellungnahme Verordnung häusliche Krankenpflege",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM160399",
+    "name": "Krankentransportschein",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM170101",
+    "name": "Spirometrie Dokumentationsbogen Meldepflicht",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM170102",
+    "name": "Nachweis über die verabreichte Dosis der Hormone und die Anzahl der Zyklen. Hygienestandard",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM170103",
+    "name": "graphische Darstellung zur Geburtensituation und der Eröffnung des Muttermundes bei Entbindung. Patientenfragebogen",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM170104",
+    "name": "Maßnahmenplan, der die strukturierte und zielgerichtete Vorgehensweise von Pflegekräften bei der Versorgung beschreibt",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM170105",
+    "name": "tischer Punktion, Anmeldung zur Punktion Qualitätssicherungsbogen",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM170199",
+    "name": "befund, Psychopathologischer Befund, Therapieplan Psy Sonstiges Qualitätssicherungsdokument",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190101",
+    "name": "Anforderung von Arzneimitteln an eine dafür zuständige Ausgabestelle. Anforderung Unterlagen",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190102",
+    "name": "Schriftverkehr Amtsgericht",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190103",
+    "name": "Schriftverkehr MDK Arzt",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190104",
+    "name": "tliche Korrespondenz zwischen medizinischer Einrichtung und der deutschen Rentenversicherung. Schriftverkehr Krankenkasse",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190105",
+    "name": "Schriftverkehr Deutsche Rentenversicherung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190106",
+    "name": "schriftliche Einwilligung um medizinische Daten, die der ärztlichen Schweigepflicht unterliegen, an Dritte weiterge",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190107",
+    "name": "Empfangsbestätigung",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190108",
+    "name": "Handschriftliche Notiz",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190109",
+    "name": "Bewegungsplan Lieferschein",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190110",
+    "name": "Schriftverkehr Amt/ Behörde/ Anwalt",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190199",
+    "name": "ben, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können. Sonstiger Schriftverkehr",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190201",
+    "name": "Beratungsbogen Sozialer Dienst",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190202",
+    "name": "Soziotherapeutischer Betreuungsplan",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190203",
+    "name": "ben über den notarztspezifischen Einsatz. Einschätzung Sozialdienst",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190204",
+    "name": "Überweisungsschein Abschlussbericht Sozialdienst",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM190299",
+    "name": "Sonstiger Aufklärungsbogen …",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM220101",
+    "name": "(Behandlungsplan für Maßnahmen zur künstlichen Befruchtung) Behandlungsvertrag",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM220102",
+    "name": "schriftliche Bevollmächtigung, bestimmte Interessen Dritter zu vertreten. Wahlleistungsvertrag",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM220103",
+    "name": "verordnung), 8a (Verordnung von vergrößernden Sehhilfen), 13 (Heilmittelverordnung Physikalische Therapie), 14, 15 (VO einer Hörhilfe), 18 (VO Ergotherapie), 28 (VO Sozialdienst) Heimvertrag",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AM220199",
+    "name": "Sonstiges Dokument Sozialdienst",
+    "standard": "Gesetzliche Vorgaben (SGB V, SGB XI, BGB), KBV Vordrucke (Muster-Formulare)"
+  },
+  {
+    "code": "AU010101",
+    "name": "gebundenen Indexierung verwendet werden. Um sicherzustellen, dass sich beispielsweise die Rechtschreibkorrektur der Klassenbezeichnung nicht negativ auswirkt, wenn diese bereits verwendet wurde, ist jeder KDL eine Notation vorangestellt. Diese Notation beschreibt den Deskriptor eineindeutig. Wird eine Dokumentenklasse deaktiviert, wird diese Notation auch nicht neu vergeben. Im Klassifikationssystem selbst entsteht eine Lücke. Wichtig ist, dass",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU010102",
+    "name": "Anmeldung Aufnahme",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU010103",
+    "name": "ben über die Aufklärung der geplanten Therapie, inklusive anamnestischer Erhebungen. Aufnahmebogen",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU010104",
+    "name": "Checkliste Aufnahme",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU010105",
+    "name": "Stammblatt",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU010199",
+    "name": "Sonstiger Vertrag",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU050101",
+    "name": "AD0201 = fortlaufende Nummer Abb. 12: Herleitung Notation für die Unterklassen der KDL-2021 2.5.3. DOKUMENTENKLASSEN DER KDL Mit der Version 2021 umfasst die KDL 381 Dokumentenklassen",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU050102",
+    "name": "Überweisungsschein",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU050104",
+    "name": "Verlegungsschein intern Verlegungsschein intern",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU050199",
+    "name": "Meldung an Sozialdienst, Verlaufsdokumentation Sozialdienst Sonstiges Einweisungs-/ Überweisungsdokument",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU190101",
+    "name": "Einsatzprotokoll",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU190102",
+    "name": "Notaufnahmebericht",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU190103",
+    "name": "ärztlichen Bericht über die Behandlung in der Notaufnahme. Notaufnahmebogen",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU190105",
+    "name": "ben zur Einschätzung des Harnverhalts",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "AU190199",
+    "name": "tentypen, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können, jedoch elektronisch direkt ausgetauscht wird. Sonstige Dokumentation Rettungsstelle",
+    "standard": "KBV-Standardformulare (Muster 2, 6, 7), G-BA Aufnahme-/Einweisungsrichtlinie"
+  },
+  {
+    "code": "DG020101",
+    "name": "mische Abbildungen, die zur Befunderhebung dienen. Anforderung bildgebende Diagnostik",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020102",
+    "name": "Anforderung von Unterlagen, die für den aktuellen Behandlungsverlauf relevant sind. Angiographiebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020103",
+    "name": "bungen für Klinische Studien. Diese sind inhaltlich unterschiedlich und abhängig von der Fragestellung der durchzuführenden Studie. CT-Befund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020104",
+    "name": "Modul in der Praxissoftware niedergelassener Ärzte, um den eArztbrief direkt auszutauschen. Entspricht den Anforderungen der Telematikinfrastruktur. Echokardiographiebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020105",
+    "name": "Nachweis für den Empfang von Dokumenten, Medikamenten, Hilfsmittel usw. Endoskopiebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020106",
+    "name": "ben im Rahmen der Herstellung von Blut und Blutprodukten. Mindestinhalte sind: Datum, verantwortliche Person, Art des Blutes bzw. Blutproduktes. Herzkatheterprotokoll",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020107",
+    "name": "ben über den Mehraufwand bei einer Infektion durch multiresistente Keime. MRT-Befund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020108",
+    "name": "Notfall wichtige Daten des Patienten – gespeichert auf der elektronischen Gesundheitskarte. OCT-Befund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020109",
+    "name": "PET-Befund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020110",
+    "name": "Ergeb",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020111",
+    "name": "en zur Art und Dauer der zu verabreichenden Sondennahrung. Sonographiebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020112",
+    "name": "ben mit Therapiezielen, verordneten empfohlenen Maßnahmen usw., welche durch den Sozialen Dienst an die Krankenkasse weitergeleitet werden (KBV Muster 27). SPECT-Befund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020113",
+    "name": "Szintigraphiebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020114",
+    "name": "Mammographiebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020115",
+    "name": "ben über erforderliche medizinische, organisatorische Maßnahmen zum Aufnahmezeitpunkt. Erfolgte Durchführungen werden gekennzeichnet. Checkliste bildgebende Diagnostik",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG020199",
+    "name": "Dialysevisite Sonstige Dokumentation bildgebende Diagnostik",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060101",
+    "name": "forderung von benötigten Blutkonserven bei einer Blutbank. Anforderung Funktionsdiagnostik",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060102",
+    "name": "Audiometriebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060103",
+    "name": "standardisierte Anga",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060104",
+    "name": "Erklärung über die Unterbrechung des stationären Aufenthaltes über einen festgelegten Zeitraum. Blutdruckprotokoll",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060105",
+    "name": "CTG-Ausdruck",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060106",
+    "name": "Operierens, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden kann. Dokumentationsbogen Feststellung Hirntod",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060107",
+    "name": "Irreversibilitätsnachweis zur Feststellung des Hirnfunktionsausfalls. Dokumentationsbogen Herzschrittmacherkontrolle",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060108",
+    "name": "nisse einer Nachsorgeuntersuchung nach dem Einsetzen eines Herzschrittmacherimplantats. Dokumentationsbogen Lungenfunktionsprüfung",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060109",
+    "name": "nisse einer ultraschallgestützten Untersuchung der Struktur und Funktion des Herzens, welche bildlich dargestellt und ausgewertet werden. EEGAuswertung",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060110",
+    "name": "Informationsaustausch per E-Mail – direkt elektronisch oder ausgedruckt in Papierkrankenakte - die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden kann. EMG-Befund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060111",
+    "name": "EKGAuswertung",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060112",
+    "name": "Manometriebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060113",
+    "name": "Messungsprotokoll Augeninnendruck",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060114",
+    "name": "Neurographiebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060115",
+    "name": "Rhinometriebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060116",
+    "name": "Schlaflabordokumentationsbogen",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060117",
+    "name": "Ergeb",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060118",
+    "name": "ben, ob die zur Entlassung notwendigen Dokumente/Gegenstände vollständig sind. Checkliste Funktionsdiagnostik",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060119",
+    "name": "Ergometriebefund",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060120",
+    "name": "Schmerztherapie, Dialyse, Herzkatheter Kipptischuntersuchung",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060121",
+    "name": "ben über die Aufwachphase nach einem Eingriff, Operation. Augenuntersuchung",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060122",
+    "name": "festgelegte Leitlinie bezüglich der Durchführung von Hygienemaßnahmen zum Vermeiden von Gesundheitsschäden durch Erreger. ICD-Kontrolle",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060123",
+    "name": "Zahlenverbindungstest Zystometrie",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060124",
+    "name": "befund intern/extern Uroflowmetrie",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060199",
+    "name": "ben, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können. Sonstige Dokumentation Funktionsdiagnostik",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060201",
+    "name": "Schellong Test",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060202",
+    "name": "nisse, wie gut der Körper eine festgelegte Menge Zucker verarbeiten kann. H2 Atemtest",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060203",
+    "name": "Allergietest",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060204",
+    "name": "Zahlenverbindungstest",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060205",
+    "name": "BESCHREIBUNG DER DOKUMENTENKLASSEN 6-MinutenGehtest",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "DG060299",
+    "name": "elektronischen Schriftverkehr, der nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden kann. Sonstiger Funktionstest",
+    "standard": "Fachgesellschafts-Leitlinien (AWMF), ISiK DiagnosticReport Profil, LOINC-Kodierung"
+  },
+  {
+    "code": "ED010199",
+    "name": "ben, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können. Sonstige Audiodokumentation",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED020101",
+    "name": "digitale direkte Fotodokumentation – Schwerpunkt: Diagnostik Fotodokumentation Operation",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED020102",
+    "name": "spezifischeren KDL dieser Unterklasse abgebildet werden kann. Bsp.: Anforderung Fotolabor, Dermatologische Fotografie Fotodokumentation Dermatologie",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED020103",
+    "name": "digitale direkte Fotodokumentation – Schwerpunkt: Dermatologie Fotodokumentation Diagnostik",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED020104",
+    "name": "Wahlleistungsvertrag, Heimvertrag Videodokumentation Operation",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED020199",
+    "name": "Foto-/Videodokumentation Sonstige",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110101",
+    "name": "bildgebende Diagnostik, Funktionstest, Ärztlicher Befundbericht Behandlungspfad",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110102",
+    "name": "sungsschein Notfalldatenmanagement (NFDM)",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110103",
+    "name": "(eMP) = bundeseinheitlicher Medikationsplan Medikationsplan elektronisch (eMP)",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110104",
+    "name": "bescheinigung (papierbasiert) eArztbrief (bvitg)",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110105",
+    "name": "gebnisse sowie die visuelle Darstellung der Aufzeichnung und Messung der elektrischen Ströme des Gehirns. eImpfpass",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110106",
+    "name": "eZahnärztliches Bonusheft",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110107",
+    "name": "eArbeitsunfähigkeitsbescheini-gung",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110108",
+    "name": "eRezept",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110109",
+    "name": "ben zur Vorbereitung einer Entlassung nach stationärem Aufenthalt. ePflegebericht",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED110199",
+    "name": "Sonstige Dokumentation",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED190101",
+    "name": "Informationsaustausch per E-Mail – direkt elektronisch oder ausgedruckt in Papierkrankenakte. Schwerpunkt: Arztauskunft ohne Befundergeb",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED190102",
+    "name": "direkt elektronisch oder ausgedruckt in Papierkrankenakte. Schwerpunkt: Befundergeb",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED190103",
+    "name": "EKG E-Mail Arztauskunft",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED190104",
+    "name": "Informationsaustausch per E-Mail – direkt elektronisch oder ausgedruckt in Papierkrankenakte. Schwerpunkt: Juristische Beweissicherung",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED190105",
+    "name": "Informationsaustausch per Fax – direkt elektronisch oder ausgedruckt in Papierkrankenakte. Schwerpunkt: Arztauskunft ohne Befundergeb",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED190106",
+    "name": "Informationsaustausch per Fax – direkt elektronisch oder ausgedruckt in Papierkrankenakte. Inhaltlicher Schwerpunkt: Befundergeb",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED190107",
+    "name": "Fax Arztauskunft",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED190108",
+    "name": "Informationsaustausch per Fax – direkt elektronisch oder ausgedruckt in Papierkrankenakte. Schwerpunkt: Juristische Beweissicherung Fax Sonstige",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "ED190199",
+    "name": "version, Inhalationsplan Sonstiger elektronischer Schriftverkehr",
+    "standard": "DIN 6868 Bildqualität, DICOM-Standard für med. Bildgebung, ISiK ImagingStudy Profil"
+  },
+  {
+    "code": "LB020101",
+    "name": "Blutgasanalyse",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB020102",
+    "name": "ben zur Blutgruppe und zum Rhesusfaktor. Blutkulturenbefund",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB020103",
+    "name": "ben zum Vertrag zwischen einer Einrichtung und einem Bewohner. Herstellungsund Prüfprotokoll von Blut und Blutprodukten",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB020104",
+    "name": "Nachweis über das Versenden eines Fax. Serologischer Befund",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB020199",
+    "name": "Sonstige Dokumentation Blut",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB120101",
+    "name": "ben zur Einschätzung einer Bewusstseinsund Hirnfunktionsstörung bei Erwachsenen nach Schädel-HirnTrauma. Glukosetoleranztestprotokoll",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB120102",
+    "name": "UNKNOWN",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB120103",
+    "name": "Befundbogen",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB120104",
+    "name": "Anforderung bzw. Anmeldung einer therapeutischen Behandlung. Anforderung Labor",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB120105",
+    "name": "Überweisungsschein Labor",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB120199",
+    "name": "dokumentation, PICCO Protokoll. Sonstiger Laborbefund",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB130101",
+    "name": "nisse der Messung des Augeninnendrucks (Tonometrie) mittels Applationstonometer. Mikrobiologiebefund",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB130102",
+    "name": "anforderung, Zytologieanforderung, Molekularpathologieanforderung Urinbefund",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "LB220102",
+    "name": "tale direkte Videodokumentation – Schwerpunkt: Operation Virologiebefund",
+    "standard": "ISiK Laborbefund Profil, LOINC-Kodierung, Referenzbereiche nach RiliBÄK"
+  },
+  {
+    "code": "OP010101",
+    "name": "geplanter Eingriff, Vitaldaten, Präoperative Visite Anästhesieprotokoll intraoperativ",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP010102",
+    "name": "Aufwachraumprotokoll",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP010103",
+    "name": "Checkliste Anästhesie",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP010199",
+    "name": "tungen (GOÄ), Einzahlungsquittung, Individual-Checkliste, Liquidation, Zahlungsaufforderung, Checkliste Abrechnung, Entlassungsschein Sonstige Anästhesiedokumentation",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150101",
+    "name": "Diagnosen und Leistungen während eines Krankenhausaufenthaltes, welche die Grundlage zur Abrechnung beim jeweiligen Kostenträger bilden. Chargendokumentation",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150102",
+    "name": "OP-Anmeldungsbogen",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150103",
+    "name": "ben zur Anmeldung eines Patienten für einen operativen Eingriff. OP-Bericht",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150104",
+    "name": "Zusammenfassung des Operationsverlaufes durch einen Arzt. OP-Bilddokumentation",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150105",
+    "name": "schließlich die bildliche Dokumentation, die während eines operativen Eingriffes entstanden ist. OP-Checkliste",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150106",
+    "name": "ben über die Aufklärung der geplanten Operation, inklusive anamnestischer Erhebungen. OP-Protokoll",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150107",
+    "name": "Postoperative Verordnung",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150108",
+    "name": "liche Anga",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150109",
+    "name": "Durchführung eines Blutreinigungsverfahrens. Dokumentation ambulantes Operieren",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP150199",
+    "name": "Sonstige OPDokumentation",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP200101",
+    "name": "anzeige Transplantationsprotokoll",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP200102",
+    "name": "graphie Spenderdokument",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "OP200199",
+    "name": "aben, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können. Sonstige Transplantationsdokumentation",
+    "standard": "BQS/IQTIG Qualitätssicherung OP-Dokumentation, G-BA Mindestmengenregelung"
+  },
+  {
+    "code": "PT080101",
+    "name": "Histologieanforderung",
+    "standard": "TNM-Klassifikation (UICC), ICD-O-3 Morphologie, pathologische Befundstrukturen"
+  },
+  {
+    "code": "PT080102",
+    "name": "anforderung, Molekularpathologieanforderung Histologiebefund",
+    "standard": "TNM-Klassifikation (UICC), ICD-O-3 Morphologie, pathologische Befundstrukturen"
+  },
+  {
+    "code": "PT130101",
+    "name": "Molekularpathologieanforderung",
+    "standard": "TNM-Klassifikation (UICC), ICD-O-3 Morphologie, pathologische Befundstrukturen"
+  },
+  {
+    "code": "PT130102",
+    "name": "Anforderung Labor, Zytologieanforderung Molekularpathologiebefund",
+    "standard": "TNM-Klassifikation (UICC), ICD-O-3 Morphologie, pathologische Befundstrukturen"
+  },
+  {
+    "code": "PT260101",
+    "name": "nisse einer Untersuchung, bei der Druck und Volumen der Harnblase gemessen wird. Zytologieanforderung",
+    "standard": "TNM-Klassifikation (UICC), ICD-O-3 Morphologie, pathologische Befundstrukturen"
+  },
+  {
+    "code": "PT260102",
+    "name": "Laboranforderung, Molekularpathologieanforderung Zytologiebefund",
+    "standard": "TNM-Klassifikation (UICC), ICD-O-3 Morphologie, pathologische Befundstrukturen"
+  },
+  {
+    "code": "SD070101",
+    "name": "gelegte Kriterien zur Feststellung der Notwendigkeit einer stationären Behandlung. Geburtenbericht",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070103",
+    "name": "Geburtenbericht Geburtenverlaufskurve",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070104",
+    "name": "Neugeborenenscreening",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070105",
+    "name": "Asessment Partogramm",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070106",
+    "name": "nahmen zur Wiedereingliederung in das Erwerbsle",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070108",
+    "name": "befund",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070109",
+    "name": "Geburtenbogen",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070110",
+    "name": "sorglich festgehaltenen letzten Willen. Perzentilkurve",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070112",
+    "name": "nisse von Messungen der Herztöne des ungeborenen Kindes sowie die Wehentätigkeit der Mutter. Datenblatt für den Pädiater",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070199",
+    "name": "ben, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können. Sonstige Geburtendokumentation",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070201",
+    "name": "ben über Diagnostik, Krankheitsund Behandlungsverlauf eines ausgewählten Zeitraumes, chronologisch erfasst. Barthel Index",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070202",
+    "name": "ben zur Einschätzung des Risikos, ein Druckgeschwür zu entwickeln. Dem Tect",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070204",
+    "name": "Sturzrisikoerfassungsbogen",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070205",
+    "name": "DemTect, MMST Geriatrische Depressionsskala",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070206",
+    "name": "strative Anga",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070207",
+    "name": "aufga",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070208",
+    "name": "Timed Up and Go Test",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD070299",
+    "name": "bogen, Kunsttherapie Sonstiges geriatrisches Dokument",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD110101",
+    "name": "Altersdepression zu ermitteln",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD110102",
+    "name": "Intensivmedizinische Komplexbehandlungsdokumentation",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD110103",
+    "name": "MRSA Komplexbehandlungsdokumentation",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD110104",
+    "name": "Dazu zählen Nerven, die Muskeln versorgen sowie Nerven für Sinnesempfindungen. Neurologische Komplexbehandlungsdokumentation",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD110105",
+    "name": "Palliativmedizinische Komplexbehandlungsdokumentation",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD110106",
+    "name": "PKMS-Dokumentation",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD110199",
+    "name": "dystokie, Geburtsplanung, Still-/ Ernährungsprotokoll, Entnahme Nabelschnurblut Sonstige Komplexbehandlungsdokumentation",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD130101",
+    "name": "ben zum Grund der stationären Aufnahme. Standardisiertes Einweisungsdokument gemäß Kassenärztlicher Bundesvereinigung (KBV Muster 2). Vertrag Maßregelvollzug",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD130102",
+    "name": "ambulanten Vorsorgeleistung in anerkannten Kurorten) Antrag Maßregelvollzug",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD130103",
+    "name": "liche Korrespondenz zwischen medizinischer Einrichtung und Krankenkasse. Schriftverkehr Maßregelvollzug",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD130104",
+    "name": "gung zur Datenübermittlung an die Krankenkasse mit Widerruf. Einwilligung/ Einverständniserklärung Maßregelvollzug",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD130199",
+    "name": "ben, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können. Sonstiges Maßregelvollzugdokument",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD150101",
+    "name": "Follow-UpBogen",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD150102",
+    "name": "Meldebogen Krebsregister",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD150103",
+    "name": "weise über die Transplantation von Gewebe, Organen oder Körperteilen. Tumorkonferenzprotokoll",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD150104",
+    "name": "nisse des Zusammentreffens von verschiedenen Fachärzten, über die Beratung der weiteren Behandlung von Tumorerkrankungen. Tumorlokalisationsbogen",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD150199",
+    "name": "ben, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können. Sonstiger onkologischer Dokumentationsbogen",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD160101",
+    "name": "schließlich handschriftliche Informationen auf einem formlosen Bogen. Handschriftliches Patiententagebuch",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD160102",
+    "name": "therapeutische Anordnung durch den Arzt zur Behandlung einer psychischen Erkrankung. Psychologischer Erhebungsbogen",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD160103",
+    "name": "Beschreibung und Festlegung der wichtigsten Merkmale des Forschungsvorhabens. Psychologische Therapieanordnung",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD160104",
+    "name": "Psychologisches Therapiegesprächsprotokoll",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD160105",
+    "name": "ben zur Feststellung einer psychischen Erkrankung sowie deren Schweregrad",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SD160199",
+    "name": "Sonstiges psychologisches Dokument",
+    "standard": "Fachspezifische Dokumentationsstandards (DGGG, DGP, DGKJ, DGPPN)"
+  },
+  {
+    "code": "SF060101",
+    "name": "ben im Rahmen der Nachsorge zur Erfassung der Verlaufskontrolle nach Abschluss der Behandlung. Forschungsbericht",
+    "standard": "ICH-GCP Richtlinie, AMG §40ff Prüfplandokumentation, Ethikkommissions-Vorgaben"
+  },
+  {
+    "code": "SF060199",
+    "name": "Gesprächsnotiz Sonstige Forschungsdokumentation",
+    "standard": "ICH-GCP Richtlinie, AMG §40ff Prüfplandokumentation, Ethikkommissions-Vorgaben"
+  },
+  {
+    "code": "SF190101",
+    "name": "Nachweis über die verabreichte Dosis der Zytostatika und die Anzahl der Zyklen. CRF-Bogen",
+    "standard": "ICH-GCP Richtlinie, AMG §40ff Prüfplandokumentation, Ethikkommissions-Vorgaben"
+  },
+  {
+    "code": "SF190102",
+    "name": "Fotodokumentation, Einverständniserklärung Neugeborenenscreening. Einwilligung Studie",
+    "standard": "ICH-GCP Richtlinie, AMG §40ff Prüfplandokumentation, Ethikkommissions-Vorgaben"
+  },
+  {
+    "code": "SF190103",
+    "name": "Protokoll Einund Ausschlusskriterien",
+    "standard": "ICH-GCP Richtlinie, AMG §40ff Prüfplandokumentation, Ethikkommissions-Vorgaben"
+  },
+  {
+    "code": "SF190104",
+    "name": "ben zu empfohlenen Nahrungsmitteln aufgrund verschiedener Indikationen. Prüfplan",
+    "standard": "ICH-GCP Richtlinie, AMG §40ff Prüfplandokumentation, Ethikkommissions-Vorgaben"
+  },
+  {
+    "code": "SF190105",
+    "name": "reaktion, Checkliste Transfusion, Konservenausgabeprotokoll SOP-Bogen",
+    "standard": "ICH-GCP Richtlinie, AMG §40ff Prüfplandokumentation, Ethikkommissions-Vorgaben"
+  },
+  {
+    "code": "SF190106",
+    "name": "ben zur Erstund Folgeversorgung eines künstlichen Ausganges. Studienbericht",
+    "standard": "ICH-GCP Richtlinie, AMG §40ff Prüfplandokumentation, Ethikkommissions-Vorgaben"
+  },
+  {
+    "code": "SF190199",
+    "name": "medizinischer Rehabilitation, Ärztliche Verordnung zur nachstationären Versorgung Sonstige Studiendokumentation",
+    "standard": "ICH-GCP Richtlinie, AMG §40ff Prüfplandokumentation, Ethikkommissions-Vorgaben"
+  },
+  {
+    "code": "TH020101",
+    "name": "gangsarztbericht, Nachschaubericht, Ärztlicher Befundbericht Bestrahlungsplan",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH020102",
+    "name": "individuelle Planung einer Bestrahlungstherapie mit Anga",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH020103",
+    "name": "Nachweis über die Durchführung einer Bestrahlungstherapie. Bestrahlungsverordnung",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH020104",
+    "name": "lich vorgeschriebene Qualitätssicherungsverfahren laut IQTIG. Radiojodtherapieprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH020105",
+    "name": "Therapieprotokoll mit Radionukliden",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH020199",
+    "name": "Vertragsbedingungen, Individuelle Vereinbarungen Sonstiges Bestrahlungstherapieprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH060101",
+    "name": "genau zu prüfen. Dadurch soll eine falsche oder ungenaue KDL-Zuordnung vermieden werden. Inklusiva Muss ein Dokument zwingend einer Dokumentenklasse zugeordnet werden, wird dies im Inklusivum (Inkl.) aufgeführt. In diesem Fall ist der gewählte KDL-Kode zu verwenden. Beispiel 3 »Klassierungshilfe über die Beschreibung des KDL-Typs«",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH060102",
+    "name": "ben über eine Lieferung. Logopädieprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH060103",
+    "name": "Erfassung von Änderungen im Pflegeprozess und den daraus resultierenden Maßnahmen. Physiotherapieprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH060104",
+    "name": "Anforderung oder Anmeldung von Diagnostiken ohne bildgebende Darstellung. Anforderung Funktionstherapie",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH060199",
+    "name": "Patient Admission Form Sonstiges Funktionstherapieprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130101",
+    "name": "Zytologieanforderung, Molekularpathologieanforderung, Überweisungsschein Labor Anforderung Medikation",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130102",
+    "name": "Unterbringung, Verlängerungsantrag, Antrag auf Psychotherapie, Antrag auf Pflegeeinstufung, Kostenübernahmeantrag, Antrag auf Leistungen der Pflegeversicherung Apothekenbuch",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130103",
+    "name": "ben über Voraussetzungen, den Ablauf oder erforderliche funktionelle Diagnostiken. Erfolgte Durchführungen werden gekennzeichnet. Chemotherapieprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130104",
+    "name": "nisse einer Untersuchung zur Bestimmung von Veränderungen anhand von Gewebeproben. Hormontherapieprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130107",
+    "name": "Gutachten, Schriftverkehr MDK Arzt Medikamenten plan intern/extern",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130108",
+    "name": "Zusammenfassung des Aufenthaltes während der Rehabilitation. Rezept",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130109",
+    "name": "Schmerztherapieprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130110",
+    "name": "Anweisungen für den weiteren Behandlungsverlauf nach einem operativen Eingriff. Prämedikationsprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130111",
+    "name": "Lyse Dokument",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH130199",
+    "name": "Verlaufsbericht Strahlentherapie Sonstiges Dokument medikamentöser Therapie",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH160101",
+    "name": "Kriterien, die eine Teilnahme an einer Studie ermöglichen oder ausschließen. Protokoll Ernährungsberatung",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH160199",
+    "name": "ben, die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden können. Sonstiges Protokoll Patientenschulung",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH200101",
+    "name": "Anforderung Blutkonserven",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH200102",
+    "name": "Urinbefund, Virologiebefund Blutspendeprotokoll",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH200103",
+    "name": "relevanten Anga",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH200104",
+    "name": "Ergeb",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "TH200199",
+    "name": "Nachbehandlungsschema Sonstiges Transfusionsdokument",
+    "standard": "Leitliniengerechte Therapiedokumentation (AWMF), TFG §14, BÄK Hämotherapie-RL"
+  },
+  {
+    "code": "UB999997",
+    "name": "Gesamtdokumentation stationäre Versorgung",
+    "standard": "Allgemeine Krankenhaus-Dokumentationsstandards, §630f BGB Dokumentationspflicht"
+  },
+  {
+    "code": "UB999998",
+    "name": "ganzheitliche interdisziplinäre geriatrische Beurteilung mit Festlegung von Maßnahmen im Behandlungsverlauf. Gesamtdokumentation ambulante Versorgung",
+    "standard": "Allgemeine Krankenhaus-Dokumentationsstandards, §630f BGB Dokumentationspflicht"
+  },
+  {
+    "code": "UB999999",
+    "name": "lung bei Diabetes mellitus, Rheumatologische Komplexbehandlung, Parkinson Komplexbehandlung Sonstige medizinische Dokumentation",
+    "standard": "Allgemeine Krankenhaus-Dokumentationsstandards, §630f BGB Dokumentationspflicht"
+  },
+  {
+    "code": "VL010101",
+    "name": "Erklärung zum Schutz von sensiblen Daten und deren Verwendung. Dekubitusrisikoeinschätzung",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL010102",
+    "name": "Blutkulturenbefund Mini Mental Status Test inkl. Uhrentest",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL010103",
+    "name": "Ergeb",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL010104",
+    "name": "ben zur geplanten Ernährung. Ernährungsscreening",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL010105",
+    "name": "Minuten-Gehtest Aachener Aphasie Test",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL010106",
+    "name": "tentypen im Rahmen der stationären Versorgung. Diese KDL ist nur in Einzelfällen zu verwenden. Bsp.: elektronischer Austausch der gesamten Patientenakte Glasgow Coma Scale",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL010107",
+    "name": "Behandlung auf einer Stroke Unit Station, unter Gewährleistung von ständiger Anwesenheit eines Neurologen, zur kontinuierlichen Betreuung und Überwachung. NIH Stroke Scale",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL010108",
+    "name": "IPSS (International Prostata Symptom Score)",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL010199",
+    "name": "Autopsiebericht, Obduktionsbericht, Ärztliche Information (Briefform) Sonstiger Assessmentbogen",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040101",
+    "name": "ben zur Untersuchung von kognitiven Fähigkeiten, zur Früherkennung von Demenz",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040102",
+    "name": "mationen, die den Patienten über die lückenlose Anschlussversorgung nach dem Krankenhausaufenthalt aufklären. Insulinplan",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040199",
+    "name": "Checkliste zur Archivierung der Krankengeschichte Sonstige Diabetesdokumentation",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040201",
+    "name": "ben über die Aufklärung der geplanten Diagnostik, inklusive anamnestischer Erhebungen. Dialyseanforderung",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040202",
+    "name": "Dialyseprotokoll",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040299",
+    "name": "Diabetologische Empfehlungen, Diabetesberatung Sonstige Dialysedokumentation",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040301",
+    "name": "management darstellen«",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040302",
+    "name": "Informationsaustausch per Fax – direkt elektronisch oder ausgedruckt in Papierkrankenakte - die nicht in einer spezifischeren KDL dieser Unterklasse abgebildet werden kann. Fixierungsprotokoll",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040303",
+    "name": "ben für das Screening zur Ermittlung des geriatrischen Hilfebedarfs. Isolierungsprotokoll",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040304",
+    "name": "Mikrobiologiebefund, Serologischer Befund Lagerungsplan",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040305",
+    "name": "Gesprächsinhalte, die im Rahmen einer psychologischen Therapiesitzung aufgekommen sind. Punktionsprotokoll",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040307",
+    "name": "nukliden Reanimationsprotokoll",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040308",
+    "name": "nisse einer Untersuchung, bei der das Blut auf Antigene und Antikörper getestet wird. Sondenplan",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040309",
+    "name": "KIS definierten Behandlungsablauf. Elektronische Dokumentation, ggf. informativer Ausdruck in Papierkrankenakte. Behandlungsplan",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040310",
+    "name": "Infektionsdokumentationsbogen",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040311",
+    "name": "ben zur Beurteilung eines akut aufgetretenen Schlaganfalls",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040312",
+    "name": "zusammengefasst administrative und persönliche Daten im Überblick. Stomadokumentation",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040313",
+    "name": "Katheterdokument",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040314",
+    "name": "ben zur Art und Dauer der Isolierungsmaßnahmen während der Behandlung. Kardioversion",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL040399",
+    "name": "Sonstiger Durchführungsnachweis",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL090101",
+    "name": "ben zur Ermittlung der eventuell benötigten Hilfestellung im Alltag",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL090102",
+    "name": "ben zur standardisierten Erfassung unter anderem von: Vitalzeichen, Medikamentenverabreichung, Pflegemaßnahmen, Beatmungssituation und Laborwerten. Intensivkurve",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL090103",
+    "name": "Anga",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL090104",
+    "name": "Monitoringausdruck",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL090105",
+    "name": "ben über die Verabreichungsdauer und Verabreichungsart von Insulin. Intensivdokumentationsbogen",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL090199",
+    "name": "Gehstreckentest Sonstiger Intensivdokumentationsbogen",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160101",
+    "name": "Implantat-Ausweis Auszug aus den medizinischen Daten",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160102",
+    "name": "Ernährungsplan",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160104",
+    "name": "Szintigraphie Pflegeanamnesebogen",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160105",
+    "name": "ben zum aktuellen Pflegezustand bei Aufnahme. Pflegebericht",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160106",
+    "name": "Beispiel 4 »Klassierungshilfe über die Beschreibung des KDL-Typs«",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160107",
+    "name": "Pflegeplanung",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160108",
+    "name": "disierte Vorga",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160109",
+    "name": "öffentlichung einer durchgeführten Studie. Sturzprotokoll",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160110",
+    "name": "ben zur Erfassung der Tumorposition – überwiegend manuelle Skizze. Überwachungsprotokoll",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160111",
+    "name": "frage zur Übernahme der Kosten bei Weiterführung der Behandlung/Rehabilitation. Verlaufsdokumentationsbogen",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160112",
+    "name": "ben zu sämtlichen pflegerelevanten Daten in Abhängigkeit von den Defiziten und Ressourcen. Sie dienen als Grundlage für die weiterbehandelnde Einrichtung. Pflegevisite",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160113",
+    "name": "»Datensatz in der elektronischen Patientenakte abgebildet werden«. (Quelle: www.mio.kbv.de Stand 17.03.2020) Fallbesprechung Bezugspflegekraft",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160114",
+    "name": "Pflegenachweis",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL160199",
+    "name": "Sonstiger Pflegedokumentationsbogen",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL230101",
+    "name": "Kontrolle des Geburtsund Verlaufsgewichtes im 1. Lebensjahr. Wunddokumentationsbogen",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL230103",
+    "name": "digitale direkte Fotodokumentation – Schwerpunkt: Operation Fotodokumentation Wunden",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  },
+  {
+    "code": "VL230199",
+    "name": "Transplantationsbegleitschein, Checkliste Transplantation Sonstige Wunddokumentation",
+    "standard": "DNQP Expertenstandards Pflege, ISiK Encounter Profil, Pflegedokumentation nach SGB XI"
+  }
+]

@@ -1,0 +1,6 @@
+ollama
+reportlab
+pdf2image
+pillow
+opencv-python-headless
+numpy

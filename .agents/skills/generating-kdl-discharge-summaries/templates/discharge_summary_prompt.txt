@@ -1,0 +1,30 @@
+Schreibe einen professionellen Entlassbericht (Arztbrief) für einen Patienten mit folgender Hauptdiagnose: {diagnose}.
+
+Patientendaten:
+{patient_context}
+
+Nutze klinische Fachsprache im Stil eines erfahrenen deutschen Facharztes.
+Das Layout entspricht DIN 5008 für Geschäftsbriefe.
+
+Gliedere den Text strikt in folgende Abschnitte:
+
+1. **Diagnosen**
+   - Hauptdiagnose mit ICD-10-GM Code
+   - Nebendiagnosen mit ICD-10-GM Codes falls zutreffend
+
+2. **Anamnese**
+   - Kurze Zusammenfassung der Aufnahmesituation und Vorgeschichte
+
+3. **Therapie und Verlauf**
+   - Klinischer Verlauf während des stationären Aufenthalts
+   - Durchgeführte Maßnahmen und Interventionen
+
+4. **Epikrise und Empfehlung**
+   - Zusammenfassende Bewertung
+   - Empfehlungen zur Weiterbehandlung
+   - Geplante Nachsorge
+
+5. **Medikation bei Entlassung**
+   - Tabellarische Auflistung: Wirkstoff, Dosis, Applikationsform, Einnahmehinweise
+
+Antworte AUSSCHLIESSLICH mit dem Fließtext des Arztbriefes. Kein JSON, keine Markdown-Syntax.

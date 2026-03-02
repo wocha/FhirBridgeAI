@@ -1,0 +1,57 @@
+# Python and environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv*/
+venv*/
+ENV/
+
+# Secrets and Local Configurations
+.env
+.env.*
+!.env.example
+.aider.conf.yml
+
+# IDEs and Editors
+.vscode/
+!.vscode/tasks.json
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local AI & Data
+data/
+!data/.gitkeep
+models/
+.continue/
+.agents/data/
+
+# Docker and Logs
+*.log
+docker-compose.override.yml
+
+# Project specific ignores
+temp_*.png
+*.pdf

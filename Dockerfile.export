@@ -1,0 +1,20 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies if required for psycopg2, etc.
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+
+# Copy requirement files
+COPY requirements_core.txt ./
+
+# Install python dependencies required by the worker
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements_core.txt
+
+# Copy the entire project code
+COPY . .
+
+ENV PYTHONPATH=/app
+
+CMD ["python", "-m", "src.fhirbridge.workers.fhir_export_worker"]

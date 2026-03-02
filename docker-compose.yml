@@ -1,0 +1,361 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: fhirbridge_traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: fhirbridge_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: unless-stopped
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: fhirbridge_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-fhirbridge}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB:-fhirbridge}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  ingestion-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.ingestion
+    container_name: fhirbridge_ingestion
+    environment:
+      - RABBITMQ_URL=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+      - API_KEY_SECRET=${API_KEY_SECRET:-kritis-dev-key-change-in-prod}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    restart: always
+
+  ocr-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fhirbridge_ocr_worker
+    environment:
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    restart: always
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    command: [ "python", "-m", "src.fhirbridge.workers.ocr_worker" ]
+
+  llm-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fhirbridge_llm_worker
+    environment:
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - OLLAMA_URL=${OLLAMA_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.25'
+          memory: 512M
+    restart: always
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    command: [ "python", "-m", "src.fhirbridge.workers.llm_worker" ]
+
+  mq-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - OLLAMA_URL=${OLLAMA_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    restart: always
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+
+  fhir-export-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.export
+    container_name: fhirbridge_fhir_export_worker
+    environment:
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - FHIR_SERVER_URL=${FHIR_SERVER_URL:-http://host.docker.internal:8080/fhir}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    restart: always
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: fhirbridge_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: fhirbridge_grafana
+    expose:
+      - "3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+    depends_on:
+      - prometheus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.docker.localhost`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: fhirbridge_dashboard
+    expose:
+      - "8501"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.docker.localhost`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=8501"
+    restart: always
+
+  # ollama:
+  #   image: ollama/ollama:rocm
+  #   container_name: fhirbridge_ollama
+  #   environment:
+  #     - HSA_OVERRIDE_GFX_VERSION=11.0.0
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   restart: unless-stopped
+  # -----------------------------------------------------------------------
+  # vLLM Inference Engine (Production)
+  # See ADR-002: docs/adr/ADR-002-Inference-Engine.md
+  # Uncomment this block when deploying to GPU-provisioned infrastructure.
+  # Then update llm-worker environment:
+  #   INFERENCE_BASE_URL=http://vllm:8000/v1
+  #   INFERENCE_ENGINE=vllm
+  # -----------------------------------------------------------------------
+  # vllm:
+  #   image: vllm/vllm-openai:latest
+  #   container_name: fhirbridge_vllm
+  #   command:
+  #     - "--model"
+  #     - "mistralai/Mistral-Nemo-Instruct-2407"
+  #     - "--host"
+  #     - "0.0.0.0"
+  #     - "--port"
+  #     - "8000"
+  #     - "--max-model-len"
+  #     - "8192"
+  #     - "--gpu-memory-utilization"
+  #     - "0.90"
+  #     - "--dtype"
+  #     - "auto"
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - vllm_model_cache:/root/.cache/huggingface
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 120s
+  #   restart: unless-stopped
+
+  # -----------------------------------------------------------------------
+  # Ephemeral Synthetic Data Generator
+  # Runs only when explicit profile is provided: 
+  # docker compose --profile testdata up synthea-generator
+  # -----------------------------------------------------------------------
+  synthea-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.generator
+    container_name: fhirbridge_synthea_generator
+    profiles:
+      - testdata
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-fhirbridge}
+      - RABBITMQ_URL=${RABBITMQ_URL:-amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio-createbuckets:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    restart: "no"
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./.agents:/app/.agents
+
+  minio:
+    image: minio/minio:RELEASE.2024-03-07T00-43-48Z
+    container_name: fhirbridge_minio
+    profiles:
+      - archive
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-admin123}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    restart: always
+
+  minio-createbuckets:
+    image: minio/mc:latest
+    container_name: fhirbridge_minio_createbuckets
+    profiles:
+      - archive
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c " sleep 5; /usr/bin/mc alias set myminio http://minio:9000 $${MINIO_ROOT_USER:-admin} $${MINIO_ROOT_PASSWORD:-admin123}; /usr/bin/mc mb myminio/synthetic-archive --ignore-existing; /usr/bin/mc anonymous set private myminio/synthetic-archive; exit 0; "
+
+volumes:
+  rabbitmq_data:
+  postgres_data:
+  ollama_data: # vllm_model_cache:  # Uncomment with vLLM service above
+  minio_data:

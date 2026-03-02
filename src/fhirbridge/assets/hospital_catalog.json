@@ -1,0 +1,27 @@
+{
+    "General Hospital": {
+        "name": "Wocharienklinikum Mitte",
+        "header_type": "modern",
+        "color_hex": "#003366"
+    },
+    "Mass General": {
+        "name": "Universitätsmedizin Wocharien",
+        "header_type": "standard",
+        "color_hex": "#8B0000"
+    },
+    "Cape Cod Hospital": {
+        "name": "Reha-Zentrum Parkaue",
+        "header_type": "classic",
+        "color_hex": "#2F4F4F"
+    },
+    "PCP": {
+        "name": "Gemeinschaftspraxis für Innere Medizin",
+        "header_type": "minimal",
+        "color_hex": "#000000"
+    },
+    "default": {
+        "name": "Wocharienklinikum",
+        "header_type": "standard",
+        "color_hex": "#003366"
+    }
+}
