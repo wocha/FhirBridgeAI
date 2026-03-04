@@ -75,7 +75,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 
-from fhirbridge.core.database import Job, get_session_factory, init_db  # noqa: E402
+from fhirbridge.core.database import Job, JobStatus, get_session_factory, init_db  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # SQLAlchemy Dispatcher Backend
@@ -90,7 +90,7 @@ def scan_files_into_db(input_dir: str, session: Any) -> int:
     for filepath in txt_files:
         existing = session.query(Job).filter_by(filepath=filepath).first()
         if not existing:
-            new_job = Job(filepath=filepath, status="PENDING")
+            new_job = Job(filepath=filepath, status=JobStatus.PENDING)
             session.add(new_job)
             added += 1
 
@@ -102,13 +102,13 @@ def get_next_job(session: Any) -> Job | None:
     """Holt den nächsten PENDING/LLM_EXTRACTION Job und markiert ihn als LLM_EXTRACTION."""
     job = (
         session.query(Job)
-        .filter(Job.status.in_(["PENDING", "LLM_EXTRACTION"]))
+        .filter(Job.status.in_([JobStatus.PENDING, JobStatus.LLM_EXTRACTION]))
         .order_by(Job.status.desc(), Job.id.asc())
         .first()
     )
 
     if job:
-        job.status = "LLM_EXTRACTION"
+        job.status = JobStatus.LLM_EXTRACTION
         session.commit()
     return job  # type: ignore[no-any-return]
 
@@ -121,7 +121,7 @@ def mark_job_done(
     fhir_json: str | None = None,
 ) -> None:
     """Markiert einen Job als erfolgreich beendet und speichert die Texte im Audit Log."""
-    job.status = "FHIR_GENERATED"  # type: ignore[assignment]
+    job.status = JobStatus.FHIR_GENERATED
     job.output_path = output_path  # type: ignore[assignment]
     if ocr_text is not None:
         job.ocr_text = ocr_text  # type: ignore[assignment]
@@ -132,7 +132,7 @@ def mark_job_done(
 
 def mark_job_error(session: Any, job: Job, error_trace: str) -> None:
     """Speichert einen Error mit Stack Trace (Audit Logging)."""
-    job.status = "ERROR"  # type: ignore[assignment]
+    job.status = JobStatus.FAILED
     job.error_trace = error_trace  # type: ignore[assignment]
     session.commit()
 
@@ -229,7 +229,7 @@ async def _extract_from_chunk(chunk_text: str) -> dict[str, Any]:
         {"role": "user", "content": user_prompt},
     ]
 
-    import asyncio
+
     config = LlmConfig(
         model=CONFIG["MODEL_NAME"],
         temperature=CONFIG["TEMPERATURE"],
@@ -430,7 +430,6 @@ async def extract_fhir_bundle(ocr_text: str) -> dict[str, Any]:
 async def run_worker(db_path: str) -> None:
     """The continuous FHIR extraction loop."""
     import asyncio
-    import time
 
     engine = init_db(db_path)
     SessionFactory = get_session_factory(engine)
@@ -447,7 +446,7 @@ async def run_worker(db_path: str) -> None:
                 # Poll for jobs that have OCR text ready
                 job = (
                     session.query(Job)
-                    .filter(Job.status == "LLM_EXTRACTION")
+                    .filter(Job.status == JobStatus.LLM_EXTRACTION)
                     .order_by(Job.id.asc())
                     .first()
                 )
@@ -505,4 +504,5 @@ async def main() -> None:
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

@@ -131,7 +131,6 @@ class LlmClient:
             override_config = client.config.model_copy(update={"max_retries": max_retries})
             client = LlmRetryClient(override_config)
 
-        import asyncio
 
         try:
             parsed_obj = await client.generate_structured(
@@ -165,7 +164,6 @@ class LlmClient:
                     f"{hallucinated} erwähnt. Nutze AUSSCHLIESSLICH relevante "
                     f"Daten ({sorted(allowed_years)}).\n{prompt}"
                 )
-                import asyncio
 
                 try:
                     parsed_obj = await client.generate_structured(

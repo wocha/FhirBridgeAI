@@ -15,7 +15,8 @@ RUN pip install --no-cache-dir \
     pandas \
     sqlalchemy \
     psycopg2-binary \
-    pydantic-settings
+    pydantic-settings \
+    httpx
 # Copy the application source code
 COPY . .
 
@@ -26,4 +27,4 @@ EXPOSE 8501
 
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
 
-ENTRYPOINT ["streamlit", "run", ".agents/skills/building-kritis-dashboards/scripts/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+ENTRYPOINT ["streamlit", "run", "dashboard/app.py", "--server.port=8501", "--server.address=0.0.0.0"]

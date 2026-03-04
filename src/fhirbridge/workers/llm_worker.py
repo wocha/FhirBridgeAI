@@ -17,15 +17,15 @@ from typing import Any
 import aio_pika
 import aioboto3
 
-from fhirbridge.core.database import Job, get_session_factory, init_db
+from fhirbridge.core.database import Job, JobStatus, get_session_factory, init_db
+from fhirbridge.core.llm import LlmConfig, LlmRetryClient, LlmValidationError
 from fhirbridge.core.rabbitmq import (
-    FhirExportMessage,
     DocumentMetaData,
+    FhirExportMessage,
     get_rabbitmq_connection,
     init_rabbitmq,
 )
 from fhirbridge.models.fhir_models import BundleExtraction
-from fhirbridge.core.llm import LlmConfig, LlmRetryClient, LlmValidationError
 
 CONFIG: dict[str, Any] = {
     "DB_PATH": "data/dispatcher.db",
@@ -42,7 +42,9 @@ engine = init_db(str(CONFIG["DB_PATH"]))
 SessionFactory = get_session_factory(engine)
 
 
-def _update_job_sync(job_id: int, status: str, fhir_json: str | None = None, error_trace: str | None = None) -> None:
+def _update_job_sync(
+    job_id: int, status: JobStatus, fhir_json: str | None = None, error_trace: str | None = None
+) -> None:
     """Synchronous DB operation to update job state, meant to be run in a thread pool."""
     with SessionFactory() as session:
         job = session.query(Job).filter_by(id=job_id).first()
@@ -70,11 +72,11 @@ async def process_llm_message(
         )
 
         # Mark state (non-blocking)
-        await asyncio.to_thread(_update_job_sync, task.job_id, "LLM_EXTRACTION")
+        await asyncio.to_thread(_update_job_sync, task.job_id, JobStatus.LLM_EXTRACTION)
 
         if not getattr(task, "s3_object_key", None):
             raise ValueError("Kein valider s3_object_key (Claim-Check) vorhanden.")
-            
+
         # Async fetch from MinIO/S3
         session = aioboto3.Session()
         async with session.client(
@@ -87,7 +89,9 @@ async def process_llm_message(
             async with response["Body"] as stream:
                 ocr_text = (await stream.read()).decode("utf-8")
 
-        logger.info(f"  -> Extrahieren der klinischen Parameter via lokaler GPU (Job #{task.job_id}).")
+        logger.info(
+            f"  -> Extrahieren der klinischen Parameter via lokaler GPU (Job #{task.job_id})."
+        )
 
         # Initialize self-healing LLM Client (Arch-Rule #2: max_retries=3)
         config = LlmConfig(
@@ -114,12 +118,14 @@ async def process_llm_message(
                 schema=BundleExtraction,
                 system_context=system_context,
             )
-            
+
             fhir_bundle_dict = json.loads(bundle.model_dump_json(exclude_none=True))
             json_str = json.dumps(fhir_bundle_dict, indent=2, ensure_ascii=False)
 
             # Persist Claim-Check Payload (non-blocking)
-            await asyncio.to_thread(_update_job_sync, task.job_id, "FHIR_GENERATED", fhir_json=json_str)
+            await asyncio.to_thread(
+                _update_job_sync, task.job_id, JobStatus.FHIR_GENERATED, fhir_json=json_str
+            )
 
             # Route to next pipeline stage (FHIR-Transformation)
             export_msg = FhirExportMessage(job_id=task.job_id, bundle_json=json_str)
@@ -129,7 +135,7 @@ async def process_llm_message(
                     content_type="application/json",
                     delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
                 ),
-                routing_key="fhir_export_queue"
+                routing_key="fhir_export_queue",
             )
 
             await message.ack()
@@ -137,8 +143,10 @@ async def process_llm_message(
 
         except LlmValidationError as e:
             # Arch-Rule #3: Final Retry fails -> Manual DLQ Publish and explicit reject
-            logger.error(f"  ✗ LLM Validation Error für Job #{task.job_id} (retries exhausted): {e}")
-            
+            logger.error(
+                f"  ✗ LLM Validation Error für Job #{task.job_id} (retries exhausted): {e}"
+            )
+
             await dlq_exchange.publish(
                 aio_pika.Message(
                     body=message.body,
@@ -146,14 +154,21 @@ async def process_llm_message(
                         "x-error-type": "LlmValidationError",
                         "x-validation-errors": str(e.validation_errors),
                         "x-last-raw-output": str(e.last_raw_output)[:2000],
-                    }
+                    },
                 ),
-                routing_key=""
+                routing_key="",
             )
             await message.reject(requeue=False)
-            logger.info(f"  -> Job #{task.job_id} wurde in llm_dlq verschoben und Message rejected.")
+            logger.info(
+                f"  -> Job #{task.job_id} wurde in llm_dlq verschoben und Message rejected."
+            )
 
-            await asyncio.to_thread(_update_job_sync, task.job_id, "FAILED", error_trace=f"LlmValidationError: {str(e)}")
+            await asyncio.to_thread(
+                _update_job_sync,
+                task.job_id,
+                JobStatus.FAILED,
+                error_trace=f"LlmValidationError: {str(e)}",
+            )
 
     except Exception as e:
         error_trace = traceback.format_exc()
@@ -162,7 +177,9 @@ async def process_llm_message(
         # Generic error handling sets DB and natively dead-letters (requeue=False)
         try:
             task = DocumentMetaData.model_validate_json(message.body)
-            await asyncio.to_thread(_update_job_sync, task.job_id, "FAILED", error_trace=error_trace)
+            await asyncio.to_thread(
+                _update_job_sync, task.job_id, JobStatus.FAILED, error_trace=error_trace
+            )
         except Exception:
             pass
 
@@ -171,8 +188,9 @@ async def process_llm_message(
 
 async def run_worker() -> None:
     async with get_rabbitmq_connection() as connection:
-        channel, _, llm_queue, _ = await init_rabbitmq(connection)
-        
+        channel, queues = await init_rabbitmq(connection)
+        llm_queue = queues["llm_queue"]
+
         # Arch-Rule #1: STRIKT auf prefetch_count=1 konfigurieren für VRAM Protection
         await channel.set_qos(prefetch_count=1)
 
@@ -194,6 +212,7 @@ async def run_worker() -> None:
         await llm_queue.consume(callback)
 
         await asyncio.Future()
+
 
 if __name__ == "__main__":
     asyncio.run(run_worker())

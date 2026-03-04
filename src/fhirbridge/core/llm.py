@@ -37,13 +37,12 @@ from tenacity import (
 )
 
 LLM_GENERATION_DURATION = Histogram(
-    "llm_generation_duration_seconds",
-    "Time spent generating a response from the LLM endpoint"
+    "llm_generation_duration_seconds", "Time spent generating a response from the LLM endpoint"
 )
 
 LLM_VALIDATION_ERRORS = Counter(
     "llm_validation_errors_total",
-    "Number of Pydantic validation errors during structured generation"
+    "Number of Pydantic validation errors during structured generation",
 )
 
 logger = logging.getLogger(__name__)
@@ -184,7 +183,7 @@ class LlmRetryClient:
     @LLM_GENERATION_DURATION.time()
     async def generate_text(self, prompt: str, system_context: str = "") -> str:
         """Generate basic free-form text output (no Pydantic validation).
-        
+
         Uses ``/api/generate`` and applies exponential backoff for HTTP errors.
         """
         prompt_text = prompt
@@ -212,7 +211,9 @@ class LlmRetryClient:
         return await self._execute_http_with_backoff(self._generate_url, payload)
 
     @LLM_GENERATION_DURATION.time()
-    async def generate_structured(self, prompt: str, schema: type[T], system_context: str = "") -> T:
+    async def generate_structured(
+        self, prompt: str, schema: type[T], system_context: str = ""
+    ) -> T:
         """Generate a structured response matching ``schema`` using ``/api/generate``.
 
         Raises:
@@ -261,9 +262,7 @@ class LlmRetryClient:
                 except (ValidationError, json.JSONDecodeError) as exc:
                     LLM_VALIDATION_ERRORS.inc()
                     last_validation_error = exc if isinstance(exc, ValidationError) else None
-                    logger.warning(
-                        "Validation failed on attempt %s", str(exc)[:200]
-                    )
+                    logger.warning("Validation failed on attempt %s", str(exc)[:200])
                     prompt_text += (
                         f"\n\nFEHLER: Dein letztes JSON verletzte das Schema:\n{str(exc)}\n\n"
                         f"Inkorrektes JSON:\n{raw_output}\n\n"
@@ -278,7 +277,7 @@ class LlmRetryClient:
     @LLM_GENERATION_DURATION.time()
     async def chat_structured(self, messages: list[dict[str, str]], schema: type[T]) -> T:
         """Generate a structured response across a stateful conversation using ``/api/chat``.
-        
+
         The schema constraint is expected to be part of the initial messages array by the caller.
         """
         chat_messages = list(messages)  # Clone list
@@ -315,7 +314,12 @@ class LlmRetryClient:
                 raw_output = await self._execute_http_with_backoff(self._chat_url, payload)
 
                 if not raw_output:
-                    chat_messages.append({"role": "user", "content": "Fehler: Leere Antwort erhalten. Bitte JSON generieren."})
+                    chat_messages.append(
+                        {
+                            "role": "user",
+                            "content": "Fehler: Leere Antwort erhalten. Bitte JSON generieren.",
+                        }
+                    )
                     raise LlmValidationError("Empty response from LLM")
 
                 try:
@@ -324,18 +328,18 @@ class LlmRetryClient:
                 except (ValidationError, json.JSONDecodeError) as exc:
                     LLM_VALIDATION_ERRORS.inc()
                     last_validation_error = exc if isinstance(exc, ValidationError) else None
-                    logger.warning(
-                        "Validation failed on attempt %s", str(exc)[:200]
-                    )
+                    logger.warning("Validation failed on attempt %s", str(exc)[:200])
                     chat_messages.append({"role": "assistant", "content": raw_output})
-                    chat_messages.append({
-                        "role": "user",
-                        "content": (
-                            f"FEHLER: Dein letztes JSON verletzte das Schema:\n{str(exc)}\n\n"
-                            f"Inkorrektes JSON:\n{raw_output}\n\n"
-                            "Fix this JSON error."
-                        )
-                    })
+                    chat_messages.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                f"FEHLER: Dein letztes JSON verletzte das Schema:\n{str(exc)}\n\n"
+                                f"Inkorrektes JSON:\n{raw_output}\n\n"
+                                "Fix this JSON error."
+                            ),
+                        }
+                    )
                     raise LlmValidationError(
                         f"LLM output failed schema validation for {schema.__name__} after retries.",
                         last_raw_output=raw_output,

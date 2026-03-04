@@ -12,3 +12,5 @@ prometheus_client
 aiofiles
 pydantic-settings>=2.0.0
 pydantic_settings>=2.0.0
+aioboto3
+fhir.resources

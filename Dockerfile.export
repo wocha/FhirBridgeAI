@@ -15,6 +15,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the entire project code
 COPY . .
 
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/src
 
 CMD ["python", "-m", "src.fhirbridge.workers.fhir_export_worker"]

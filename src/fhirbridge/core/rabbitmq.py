@@ -24,7 +24,7 @@ class OcrTaskMessage(BaseModel):
 class DocumentMetaData(BaseModel):
     job_id: int
     filepath: str
-    payload_uri: str
+    s3_object_key: str
 
 
 class FhirExportMessage(BaseModel):
@@ -34,7 +34,7 @@ class FhirExportMessage(BaseModel):
 
 async def init_rabbitmq(
     connection: aio_pika.abc.AbstractRobustConnection,
-) -> tuple[Any, Any, Any, Any]:
+) -> tuple[Any, dict[str, Any]]:
     """
     Initializes RabbitMQ exchanges and queues for the Document Dispatcher.
     Sets up a Dead-Letter Exchange (DLX) for failed messages.
@@ -60,10 +60,33 @@ async def init_rabbitmq(
 
     # 2. Main Queues
     ocr_queue = await channel.declare_queue("ocr_task_queue", durable=True, arguments=queue_args)
-    llm_queue = await channel.declare_queue("llm_extraction_queue", durable=True, arguments=queue_args)
-    fhir_export_queue = await channel.declare_queue("fhir_export_queue", durable=True, arguments=queue_args)
+    llm_queue = await channel.declare_queue(
+        "llm_extraction_queue", durable=True, arguments=queue_args
+    )
+    fhir_export_queue = await channel.declare_queue(
+        "fhir_export_queue", durable=True, arguments=queue_args
+    )
 
-    return channel, ocr_queue, llm_queue, fhir_export_queue
+    # 3. Retry Exchange and Queue (Zero-Code Delay Pattern)
+    retry_exchange = await channel.declare_exchange(
+        "fhir_retry.dlx", aio_pika.ExchangeType.DIRECT, durable=True
+    )
+    # The retry queue routes dead messages back to the default exchange (""), directly to the fhir_export_queue
+    retry_queue_args: dict[str, Any] = {
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": "fhir_export_queue",
+    }
+    retry_queue = await channel.declare_queue(
+        "fhir_export_retry_queue", durable=True, arguments=retry_queue_args
+    )
+    await retry_queue.bind(retry_exchange, routing_key="fhir_export_retry")
+
+    return channel, {
+        "ocr_queue": ocr_queue,
+        "llm_queue": llm_queue,
+        "fhir_export_queue": fhir_export_queue,
+        "fhir_export_retry_queue": retry_queue,
+    }
 
 
 @asynccontextmanager

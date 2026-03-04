@@ -168,6 +168,7 @@ def extract_text(image: np.ndarray, lang: str = "deu") -> str:
 
 import asyncio
 
+
 async def process_pdf(pdf_path: str, lang: str = "deu", dpi: int = 300) -> str:
     """Process a single PDF: convert pages → preprocess → OCR → return full text."""
     pdf_name = Path(pdf_path).stem

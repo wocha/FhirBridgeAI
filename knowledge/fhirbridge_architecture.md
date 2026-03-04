@@ -95,3 +95,13 @@ Validates the Pydantic models against strict German ISiK (Telematikinfrastruktur
 ## Security & Data Sovereignty
 
 By employing a strictly local LLM architecture via Ollama, NO patient health information (PHI) ever leaves the hospital's intranet (`KRITIS Secure Zone`). All APIs enforce zero-trust policies inside the network.
+
+## Architectural Review Standards (The 5 Anti-Patterns)
+
+To maintain Tier-1 Enterprise standards, all active agents (specifically when acting as a `system-reviewer`) must enforce the Principal Cloud Architect review guidelines. Code containing any of the following anti-patterns will be immediately rejected, requiring an "Architectural Override Implementation Plan" before proceeding:
+
+1. **THE EVENT LOOP BLOCKER**: Synchronous network or I/O calls inside asynchronous Python code. (Exception: The Zero-Code Delay Pattern using Message TTL must be used instead of `asyncio.sleep` to inherently prevent this blocking behavior).
+2. **THE STATEFUL SINNER**: Writing or reading local state to/from disk in scalable worker nodes (must use S3 Claim-Check). Using in-memory consumer state for retries is also a violation; use RabbitMQ DLX expiration instead.
+3. **THE SILENT FAILURE**: Discarded exceptions not tracked in OpenTelemetry or Dead-Letter-Queues.
+4. **THE ORPHAN DATA**: Multi-step DB write operations without Saga/Distributed Transactions.
+5. **THE NAKED ENDPOINT**: Processing requests without strict validation of authentication/authorization.
