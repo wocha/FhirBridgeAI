@@ -229,7 +229,6 @@ async def _extract_from_chunk(chunk_text: str) -> dict[str, Any]:
         {"role": "user", "content": user_prompt},
     ]
 
-
     config = LlmConfig(
         model=CONFIG["MODEL_NAME"],
         temperature=CONFIG["TEMPERATURE"],

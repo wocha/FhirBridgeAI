@@ -131,7 +131,6 @@ class LlmClient:
             override_config = client.config.model_copy(update={"max_retries": max_retries})
             client = LlmRetryClient(override_config)
 
-
         try:
             parsed_obj = await client.generate_structured(
                 prompt=prompt,
