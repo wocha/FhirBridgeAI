@@ -19,7 +19,7 @@ import aio_pika
 from fhirbridge.core.database import Job, get_session_factory, init_db
 from fhirbridge.core.rabbitmq import (
     FhirExportMessage,
-    LlmTaskMessage,
+    DocumentMetaData,
     get_rabbitmq_connection,
     init_rabbitmq,
 )
@@ -59,7 +59,7 @@ async def process_llm_message(
     RabbitMQ Consumer Callback for LLM Tasks.
     """
     try:
-        task = LlmTaskMessage.model_validate_json(message.body)
+        task = DocumentMetaData.model_validate_json(message.body)
         logger.info(
             f"Starte LLM Verarbeitung von Job #{task.job_id}: {os.path.basename(task.filepath)}"
         )
@@ -67,8 +67,12 @@ async def process_llm_message(
         # Mark state (non-blocking)
         await asyncio.to_thread(_update_job_sync, task.job_id, "LLM_EXTRACTION")
 
-        if not task.ocr_text:
-            raise ValueError("Kein OCR Text in der Notification vorhanden.")
+        if not task.payload_uri or not task.payload_uri.startswith("file://"):
+            raise ValueError("Kein valider payload_uri (Claim-Check) vorhanden.")
+            
+        file_path = task.payload_uri.replace("file://", "")
+        with open(file_path, "r", encoding="utf-8") as f:
+            ocr_text = f.read()
 
         logger.info(f"  -> Extrahieren der klinischen Parameter via lokaler GPU (Job #{task.job_id}).")
 
@@ -87,7 +91,7 @@ async def process_llm_message(
         prompt = (
             "Aufgabe: Analysiere den folgenden Krankenhaus-Bericht und generiere "
             "exakt EIN JSON Objekt mit allen gefundenen Werten. Erfinde keine Daten.\n\n"
-            f"--- OCR TEXT ---\n{task.ocr_text}\n--- ENDE OCR TEXT ---"
+            f"--- OCR TEXT ---\n{ocr_text}\n--- ENDE OCR TEXT ---"
         )
 
         try:
@@ -144,7 +148,7 @@ async def process_llm_message(
 
         # Generic error handling sets DB and natively dead-letters (requeue=False)
         try:
-            task = LlmTaskMessage.model_validate_json(message.body)
+            task = DocumentMetaData.model_validate_json(message.body)
             await asyncio.to_thread(_update_job_sync, task.job_id, "ERROR", error_trace=error_trace)
         except Exception:
             pass

@@ -62,6 +62,8 @@ services:
     container_name: fhirbridge_ingestion
     environment:
       - RABBITMQ_URL=amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+      - DATABASE_URL=${DATABASE_URL}
+      - OLLAMA_URL=${OLLAMA_URL}
       - API_KEY_SECRET=${API_KEY_SECRET:-kritis-dev-key-change-in-prod}
     depends_on:
       rabbitmq:

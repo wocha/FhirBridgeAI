@@ -1,27 +1,26 @@
-## System Review Checklist
+## Principal Architect Review Checklist: The 5 Anti-Patterns
 
-Copy this checklist into your thought process or task boundary to track progress during the review.
+As the System-Auditor, you MUST actively scan the codebase and session history for the following critical Tier-1 Enterprise Anti-Patterns. Copy this checklist into your thought process or task boundary during the audit.
 
-- [ ] **Step 1: Identify Anti-Patterns**
-  - Did the agent struggle with any code generation?
-  - Were there repeated errors or test failures that could be prevented with better context?
-  - Did the agent have to ask the user repeatedly for the same kind of configuration?
+- [ ] **1. THE EVENT LOOP BLOCKER**
+  - *Symptom:* Synchronous network or I/O calls (e.g., `requests.get()`, `time.sleep()`, synchronous DB drivers) inside asynchronous Python code.
+  - *Remediation:* Enforce `httpx`/`aiohttp` in `asyncio` or asynchronous database clients (`asyncpg`, `motor`).
 
-- [ ] **Step 2: Evaluate Missing Knowledge**
-  - Is there domain-specific knowledge or architecture rules that should be codified into a Knowledge Item (KI)?
-  - If yes, plan to create a KI with a clear summary and artifacts.
+- [ ] **2. THE STATEFUL SINNER**
+  - *Symptom:* Writing or reading local state to/from disk (e.g., `with open('file.pdf', 'wb')`) in scalable worker nodes.
+  - *Remediation:* Enforce the S3 Claim-Check pattern using MinIO/S3. Workers must only pass object keys/URIs via queues.
 
-- [ ] **Step 3: Evaluate Skill Opportunities**
-  - Were there manual, multi-step processes the agent performed repeatedly?
-  - Could these be codified into a new skill with a utility script?
-  - Could an existing skill be enhanced with a `changes.json` plan-validate-execute pattern?
+- [ ] **3. THE SILENT FAILURE**
+  - *Symptom:* Exceptions that are caught (e.g., `except Exception: pass`) or swallowed, but neither correctly instrumented nor requeued.
+  - *Remediation:* Ensure all caught exceptions are marked as errors in an OpenTelemetry Span (`span.record_exception()`, `span.set_status(Status(StatusCode.ERROR))`) OR properly routed to a RabbitMQ Dead-Letter-Queue (DLQ).
 
-- [ ] **Step 4: Draft Recommendations**
-  - Formulate a concise list of actionable improvements to present to the user.
+- [ ] **4. THE ORPHAN DATA**
+  - *Symptom:* Multi-step database write operations without a Distributed Transaction or Saga Pattern. (e.g., Step 1 saves to Postgres, Step 2 fails to publish to RabbitMQ, leaving the system in an inconsistent state).
+  - *Remediation:* Enforce the Transactional Outbox Pattern or Saga Pattern for distributed multi-step operations.
 
-- [ ] **Step 5: Apply Skill Authoring Best Practices**
-  - Ensure any proposed new skills adhere to:
-    - Gerund naming (`creating-xyz` or similar action verb)
-    - 3rd person descriptions
-    - Proper use of progressive disclosure
-    - No magic numbers in robust scripts
+- [ ] **5. THE NAKED ENDPOINT**
+  - *Symptom:* API endpoints or internal consumers processing requests without verifying authentication/authorization.
+  - *Remediation:* Enforce Zero-Trust Architecture. Validate JWT Claims, verify RBAC scopes, and never trust internal network traffic implicitly.
+
+**Audit Protocol:**
+If any of these anti-patterns are detected, you must immediately flag them to the user and require an architectural override implementation plan before proceeding.

@@ -1,0 +1,9 @@
+{
+    "document_id": "e2e-test-123456",
+    "document_type": "discharge_summary",
+    "metadata": {
+        "source": "fax_machine_01",
+        "urgency": "high"
+    },
+    "content": "Patietn: Max Musterman, geb 12 .04.1980.\nAufnahme: 01.11.2023\nEntLassung: 05.11.2023.\n\nDiagnosn:\n1. Suspekt. Pneumonie re. UG (ICD J18.9)\n2. art. Hypertonie entgleist\n\nTherapie / Vrelauf:\nPatient kommmte mit atemoot und fieber (39,1). in der Notahufnahme CRP erhöht (120 mg/l), leubozyten 14.500. Rötgn Thorax zeigt infiltrat rechtsbasal. Beginn mit amoxicillin/clavulansöure iv. Darutner raschr entfieberung. bludruck wurde nit ramipiril 5mg eingestellt.\n\nEpiekriese: entlasug in d. häusliche betreuung. Bitte kontrolle der entzündungswert in 3 tagem bie Huasarzt.\nMfG\nDr. med. Schlampig"
+}

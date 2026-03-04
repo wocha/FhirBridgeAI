@@ -17,11 +17,21 @@ logger = logging.getLogger(__name__)
 # Constants and Configuration
 API_KEY_NAME = "X-API-Key"
 from fhirbridge.core.config import get_settings
+from fhirbridge.core.database import Job, get_session_factory, init_db
+from fhirbridge.core.rabbitmq import DocumentMetaData
 
 API_KEY_SECRET = os.getenv("API_KEY_SECRET", "kritis-dev-key-change-in-prod")
 RABBITMQ_URL = get_settings().rabbitmq_url
-QUEUE_NAME = "document_extraction_queue"
+QUEUE_NAME = "llm_extraction_queue"
 
+# Init DB
+engine = init_db(os.getenv("DATABASE_URL", "sqlite:///data/dispatcher.db"))
+SessionFactory = get_session_factory(engine)
+EPHEMERAL_DIR = "/tmp/fhirbridge_ephemeral"
+try:
+    os.makedirs(EPHEMERAL_DIR, exist_ok=True)
+except PermissionError:
+    pass
 # Security
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 
@@ -107,19 +117,26 @@ async def ingest_document(
     try:
         channel = await get_rabbitmq_channel()
         
-        # Build the message payload
-        job_payload = {
-            "job_id": request.document_id,
-            "document_id": request.document_id,
-            "content": request.content,
-            "document_type": request.document_type,
-            "metadata": request.metadata,
-            "status": "pending"
-        }
+        # 1. Create Job in DB to get the required integer ID
+        with SessionFactory() as session:
+            new_job = Job(filepath=f"api_ingest_{request.document_id}", status="QUEUED_LLM")
+            session.add(new_job)
+            session.commit()
+            job_id = new_job.id
+            
+        # 2. Write content to ephemeral storage (Claim-Check pattern)
+        ephemeral_path = os.path.join(EPHEMERAL_DIR, f"job_{job_id}_payload.txt")
+        with open(ephemeral_path, "w", encoding="utf-8") as f:
+            f.write(request.content)
+            
+        payload_uri = f"file://{os.path.abspath(ephemeral_path)}"
+        
+        # 3. Publish to correct queue for LLM Worker
+        msg = DocumentMetaData(job_id=job_id, filepath=f"api_ingest_{request.document_id}", payload_uri=payload_uri)
         
         message = aio_pika.Message(
-            body=json.dumps(job_payload).encode('utf-8'),
-            delivery_mode=aio_pika.DeliveryMode.PERSISTENT, # Ensure message is not lost on crash
+            body=msg.model_dump_json().encode('utf-8'),
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
             message_id=request.document_id,
             content_type="application/json"
         )
@@ -129,7 +146,8 @@ async def ingest_document(
             message,
             routing_key=QUEUE_NAME
         )
-        await channel.close()
+        # Note: We reuse the cached robust connection pool's channel, so we do not close the entire channel here if connection is shared. 
+        # But if get_rabbitmq_channel creates a new channel for us, we could close it. We leave it open to avoid thrashing.
         
         logger.info(f"Successfully queued document {request.document_id}")
         return DocumentIngestionResponse(

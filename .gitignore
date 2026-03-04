@@ -55,3 +55,4 @@ docker-compose.override.yml
 # Project specific ignores
 temp_*.png
 *.pdf
+.aider*
