@@ -28,6 +28,13 @@ from typing import TypeVar
 import httpx
 from prometheus_client import Counter, Histogram
 from pydantic import BaseModel, Field, ValidationError
+from tenacity import (
+    AsyncRetrying,
+    before_sleep_log,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 LLM_GENERATION_DURATION = Histogram(
     "llm_generation_duration_seconds",
@@ -215,54 +222,58 @@ class LlmRetryClient:
         schema_json = json.dumps(schema.model_json_schema(), indent=2)
         prompt_text = self._build_initial_prompt(prompt, schema_json, system_context)
 
-        last_raw_output = ""
         last_validation_error: ValidationError | None = None
 
-        for attempt in range(self.config.max_retries):
-            if self.config.inference_engine == "vllm":
-                payload = {
-                    "model": self.config.model,
-                    "prompt": prompt_text,
-                    "stream": False,
-                    "temperature": self.config.temperature,
-                    "max_tokens": self.config.max_tokens,
-                    "response_format": {"type": "json_object"},
-                }
-            else:
-                payload = {
-                    "model": self.config.model,
-                    "prompt": prompt_text,
-                    "stream": False,
-                    "format": "json",
-                    "options": {
+        async for attempt in AsyncRetrying(
+            stop=stop_after_attempt(self.config.max_retries),
+            wait=wait_exponential(multiplier=self.config.initial_backoff_seconds),
+            retry=retry_if_exception_type(LlmValidationError),
+            reraise=True,
+            before_sleep=before_sleep_log(logger, logging.WARNING),
+        ):
+            with attempt:
+                if self.config.inference_engine == "vllm":
+                    payload = {
+                        "model": self.config.model,
+                        "prompt": prompt_text,
+                        "stream": False,
                         "temperature": self.config.temperature,
-                        "num_predict": self.config.max_tokens,
-                    },
-                }
+                        "max_tokens": self.config.max_tokens,
+                        "response_format": {"type": "json_object"},
+                    }
+                else:
+                    payload = {
+                        "model": self.config.model,
+                        "prompt": prompt_text,
+                        "stream": False,
+                        "format": "json",
+                        "options": {
+                            "temperature": self.config.temperature,
+                            "num_predict": self.config.max_tokens,
+                        },
+                    }
 
-            raw_output = await self._execute_http_with_backoff(self._generate_url, payload)
-            last_raw_output = raw_output
+                raw_output = await self._execute_http_with_backoff(self._generate_url, payload)
 
-            try:
-                result = schema.model_validate_json(raw_output)
-                return result
-            except (ValidationError, json.JSONDecodeError) as exc:
-                LLM_VALIDATION_ERRORS.inc()
-                last_validation_error = exc if isinstance(exc, ValidationError) else None
-                logger.warning(
-                    "Validation failed on attempt %d/%d: %s",
-                    attempt + 1, self.config.max_retries, str(exc)[:200]
-                )
-                prompt_text += (
-                    f"\n\nFEHLER: Dein letztes JSON verletzte das Schema:\n{str(exc)}\n"
-                    "Bitte korrigiere das Format und antworte nur mit gültigem JSON."
-                )
-
-        raise LlmValidationError(
-            f"LLM output failed schema validation for {schema.__name__} after {self.config.max_retries} retries.",
-            last_raw_output=last_raw_output,
-            validation_errors=last_validation_error,
-        )
+                try:
+                    result = schema.model_validate_json(raw_output)
+                    return result
+                except (ValidationError, json.JSONDecodeError) as exc:
+                    LLM_VALIDATION_ERRORS.inc()
+                    last_validation_error = exc if isinstance(exc, ValidationError) else None
+                    logger.warning(
+                        "Validation failed on attempt %s", str(exc)[:200]
+                    )
+                    prompt_text += (
+                        f"\n\nFEHLER: Dein letztes JSON verletzte das Schema:\n{str(exc)}\n\n"
+                        f"Inkorrektes JSON:\n{raw_output}\n\n"
+                        "Fix this JSON error."
+                    )
+                    raise LlmValidationError(
+                        f"LLM output failed schema validation for {schema.__name__} after retries.",
+                        last_raw_output=raw_output,
+                        validation_errors=last_validation_error,
+                    ) from exc
 
     @LLM_GENERATION_DURATION.time()
     async def chat_structured(self, messages: list[dict[str, str]], schema: type[T]) -> T:
@@ -271,58 +282,65 @@ class LlmRetryClient:
         The schema constraint is expected to be part of the initial messages array by the caller.
         """
         chat_messages = list(messages)  # Clone list
-        last_raw_output = ""
         last_validation_error: ValidationError | None = None
 
-        for attempt in range(self.config.max_retries):
-            if self.config.inference_engine == "vllm":
-                payload = {
-                    "model": self.config.model,
-                    "messages": chat_messages,
-                    "stream": False,
-                    "temperature": self.config.temperature,
-                    "max_tokens": self.config.max_tokens,
-                    "response_format": {"type": "json_object"},
-                }
-            else:
-                payload = {
-                    "model": self.config.model,
-                    "messages": chat_messages,
-                    "stream": False,
-                    "format": "json",
-                    "options": {
+        async for attempt in AsyncRetrying(
+            stop=stop_after_attempt(self.config.max_retries),
+            wait=wait_exponential(multiplier=self.config.initial_backoff_seconds),
+            retry=retry_if_exception_type(LlmValidationError),
+            reraise=True,
+            before_sleep=before_sleep_log(logger, logging.WARNING),
+        ):
+            with attempt:
+                if self.config.inference_engine == "vllm":
+                    payload = {
+                        "model": self.config.model,
+                        "messages": chat_messages,
+                        "stream": False,
                         "temperature": self.config.temperature,
-                        "num_predict": self.config.max_tokens,
-                    },
-                }
-            raw_output = await self._execute_http_with_backoff(self._chat_url, payload)
-            last_raw_output = raw_output
+                        "max_tokens": self.config.max_tokens,
+                        "response_format": {"type": "json_object"},
+                    }
+                else:
+                    payload = {
+                        "model": self.config.model,
+                        "messages": chat_messages,
+                        "stream": False,
+                        "format": "json",
+                        "options": {
+                            "temperature": self.config.temperature,
+                            "num_predict": self.config.max_tokens,
+                        },
+                    }
+                raw_output = await self._execute_http_with_backoff(self._chat_url, payload)
 
-            if not raw_output:
-                chat_messages.append({"role": "user", "content": "Fehler: Leere Antwort erhalten. Bitte JSON generieren."})
-                continue
+                if not raw_output:
+                    chat_messages.append({"role": "user", "content": "Fehler: Leere Antwort erhalten. Bitte JSON generieren."})
+                    raise LlmValidationError("Empty response from LLM")
 
-            try:
-                result = schema.model_validate_json(raw_output)
-                return result
-            except (ValidationError, json.JSONDecodeError) as exc:
-                LLM_VALIDATION_ERRORS.inc()
-                last_validation_error = exc if isinstance(exc, ValidationError) else None
-                logger.warning(
-                    "Validation failed on attempt %d/%d: %s",
-                    attempt + 1, self.config.max_retries, str(exc)[:200]
-                )
-                chat_messages.append({"role": "assistant", "content": raw_output})
-                chat_messages.append({
-                    "role": "user",
-                    "content": f"Fehler bei der Extraktion (Validation Error): {str(exc)}\nKorrigiere deine Antwort, sodass sie das Schema strikt einhält."
-                })
-
-        raise LlmValidationError(
-            f"LLM output failed schema validation for {schema.__name__} after {self.config.max_retries} retries.",
-            last_raw_output=last_raw_output,
-            validation_errors=last_validation_error,
-        )
+                try:
+                    result = schema.model_validate_json(raw_output)
+                    return result
+                except (ValidationError, json.JSONDecodeError) as exc:
+                    LLM_VALIDATION_ERRORS.inc()
+                    last_validation_error = exc if isinstance(exc, ValidationError) else None
+                    logger.warning(
+                        "Validation failed on attempt %s", str(exc)[:200]
+                    )
+                    chat_messages.append({"role": "assistant", "content": raw_output})
+                    chat_messages.append({
+                        "role": "user",
+                        "content": (
+                            f"FEHLER: Dein letztes JSON verletzte das Schema:\n{str(exc)}\n\n"
+                            f"Inkorrektes JSON:\n{raw_output}\n\n"
+                            "Fix this JSON error."
+                        )
+                    })
+                    raise LlmValidationError(
+                        f"LLM output failed schema validation for {schema.__name__} after retries.",
+                        last_raw_output=raw_output,
+                        validation_errors=last_validation_error,
+                    ) from exc
 
     # ------------------------------------------------------------------
     # Internals

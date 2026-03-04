@@ -15,6 +15,7 @@ from functools import partial
 from typing import Any
 
 import aio_pika
+import aioboto3
 
 from fhirbridge.core.database import Job, get_session_factory, init_db
 from fhirbridge.core.rabbitmq import (
@@ -28,6 +29,10 @@ from fhirbridge.core.llm import LlmConfig, LlmRetryClient, LlmValidationError
 
 CONFIG: dict[str, Any] = {
     "DB_PATH": "data/dispatcher.db",
+    "MINIO_URL": os.getenv("MINIO_URL", "http://minio:9000"),
+    "MINIO_ROOT_USER": os.getenv("MINIO_ROOT_USER", "admin"),
+    "MINIO_ROOT_PASSWORD": os.getenv("MINIO_ROOT_PASSWORD", "admin123"),
+    "S3_BUCKET": "ephemeral-payloads",
 }
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [LLM] - %(levelname)s - %(message)s")
@@ -67,18 +72,26 @@ async def process_llm_message(
         # Mark state (non-blocking)
         await asyncio.to_thread(_update_job_sync, task.job_id, "LLM_EXTRACTION")
 
-        if not task.payload_uri or not task.payload_uri.startswith("file://"):
-            raise ValueError("Kein valider payload_uri (Claim-Check) vorhanden.")
+        if not getattr(task, "s3_object_key", None):
+            raise ValueError("Kein valider s3_object_key (Claim-Check) vorhanden.")
             
-        file_path = task.payload_uri.replace("file://", "")
-        with open(file_path, "r", encoding="utf-8") as f:
-            ocr_text = f.read()
+        # Async fetch from MinIO/S3
+        session = aioboto3.Session()
+        async with session.client(
+            "s3",
+            endpoint_url=CONFIG["MINIO_URL"],
+            aws_access_key_id=CONFIG["MINIO_ROOT_USER"],
+            aws_secret_access_key=CONFIG["MINIO_ROOT_PASSWORD"],
+        ) as s3:
+            response = await s3.get_object(Bucket=CONFIG["S3_BUCKET"], Key=task.s3_object_key)
+            async with response["Body"] as stream:
+                ocr_text = (await stream.read()).decode("utf-8")
 
         logger.info(f"  -> Extrahieren der klinischen Parameter via lokaler GPU (Job #{task.job_id}).")
 
-        # Initialize self-healing LLM Client (Arch-Rule #2: max_retries=2)
+        # Initialize self-healing LLM Client (Arch-Rule #2: max_retries=3)
         config = LlmConfig(
-            max_retries=2,
+            max_retries=3,
             temperature=0.1,  # Low temp for deterministic extraction
             max_tokens=4096,
         )
@@ -140,7 +153,7 @@ async def process_llm_message(
             await message.reject(requeue=False)
             logger.info(f"  -> Job #{task.job_id} wurde in llm_dlq verschoben und Message rejected.")
 
-            await asyncio.to_thread(_update_job_sync, task.job_id, "ERROR", error_trace=f"LlmValidationError: {str(e)}")
+            await asyncio.to_thread(_update_job_sync, task.job_id, "FAILED", error_trace=f"LlmValidationError: {str(e)}")
 
     except Exception as e:
         error_trace = traceback.format_exc()
@@ -149,7 +162,7 @@ async def process_llm_message(
         # Generic error handling sets DB and natively dead-letters (requeue=False)
         try:
             task = DocumentMetaData.model_validate_json(message.body)
-            await asyncio.to_thread(_update_job_sync, task.job_id, "ERROR", error_trace=error_trace)
+            await asyncio.to_thread(_update_job_sync, task.job_id, "FAILED", error_trace=error_trace)
         except Exception:
             pass
 
