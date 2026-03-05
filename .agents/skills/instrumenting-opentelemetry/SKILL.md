@@ -49,3 +49,44 @@ if __name__ == "__main__":
 Prometheus runs locally via Docker Compose and scrapes internal container ports or the Docker host network using `host.docker.internal` for locally executed Python scripts.
 
 Grafana is used for visualization, consuming metrics directly from the Prometheus container.
+
+## 5. Distributed Tracing: Jaeger & OpenTelemetry
+
+We use OpenTelemetry (OTel) to enable end-to-end distributed tracing across our asynchronous RabbitMQ components.
+
+### Critical Architecture Rule: Manual Context Propagation
+
+Do **NOT** rely on auto-instrumentation for message queues (like `AioPikaInstrumentor`) to carry context through complex async loops or thread pools. You MUST explicitly handle context propagation in all workers to prevent fragmented Jaeger traces:
+
+1. **Extraction:** Extract trace context from incoming RabbitMQ headers.
+
+   ```python
+   from opentelemetry.propagate import extract
+   ctx = extract(message.headers or {})
+   ```
+
+2. **Activation:** Explicitly attach the context *before* creating your span.
+
+   ```python
+   from opentelemetry import context as otel_context
+   token = otel_context.attach(ctx)
+   try:
+       with tracer.start_as_current_span("process_message", context=ctx) as span:
+           # Processing logic here...
+   ```
+
+3. **Injection:** When publishing to the next queue, explicitly inject the context into the outgoing message headers.
+
+   ```python
+   from opentelemetry.propagate import inject
+   out_headers = {}
+   inject(out_headers) 
+   await exchange.publish(aio_pika.Message(body=data, headers=out_headers), routing_key="...")
+   ```
+
+4. **Cleanup:** Ensure context detach is called in a `finally` block to prevent leakage between RabbitMQ messages.
+
+   ```python
+   finally:
+       otel_context.detach(token)
+   ```

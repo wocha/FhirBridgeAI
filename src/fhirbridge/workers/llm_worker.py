@@ -16,6 +16,8 @@ from typing import Any
 
 import aio_pika
 import aioboto3
+from opentelemetry import context as otel_context
+from opentelemetry.propagate import extract, inject
 
 from fhirbridge.core.database import Job, JobStatus, get_session_factory, init_db
 from fhirbridge.core.llm import LlmConfig, LlmRetryClient, LlmValidationError
@@ -25,6 +27,7 @@ from fhirbridge.core.rabbitmq import (
     get_rabbitmq_connection,
     init_rabbitmq,
 )
+from fhirbridge.core.telemetry import init_tracer
 from fhirbridge.models.fhir_models import BundleExtraction
 
 CONFIG: dict[str, Any] = {
@@ -40,6 +43,8 @@ logger = logging.getLogger("LLMWorker")
 
 engine = init_db(str(CONFIG["DB_PATH"]))
 SessionFactory = get_session_factory(engine)
+
+tracer = init_tracer("llm-worker")
 
 
 def _update_job_sync(
@@ -65,125 +70,136 @@ async def process_llm_message(
     """
     RabbitMQ Consumer Callback for LLM Tasks.
     """
+    headers = message.headers or {}
+    ctx = extract(headers)
+
+    token = otel_context.attach(ctx)
     try:
-        task = DocumentMetaData.model_validate_json(message.body)
-        logger.info(
-            f"Starte LLM Verarbeitung von Job #{task.job_id}: {os.path.basename(task.filepath)}"
-        )
+        with tracer.start_as_current_span("process_llm_message", context=ctx) as span:
+            try:
+                task = DocumentMetaData.model_validate_json(message.body)
+                span.set_attribute("job_id", task.job_id)
+                span.set_attribute("s3_object_key", task.s3_object_key or "")
 
-        # Mark state (non-blocking)
-        await asyncio.to_thread(_update_job_sync, task.job_id, JobStatus.LLM_EXTRACTION)
+                logger.info(
+                    f"Starte LLM Verarbeitung von Job #{task.job_id}: {os.path.basename(task.filepath)}"
+                )
 
-        if not getattr(task, "s3_object_key", None):
-            raise ValueError("Kein valider s3_object_key (Claim-Check) vorhanden.")
+                # Mark state (non-blocking)
+                await asyncio.to_thread(_update_job_sync, task.job_id, JobStatus.LLM_EXTRACTION)
 
-        # Async fetch from MinIO/S3
-        session = aioboto3.Session()
-        async with session.client(
-            "s3",
-            endpoint_url=CONFIG["MINIO_URL"],
-            aws_access_key_id=CONFIG["MINIO_ROOT_USER"],
-            aws_secret_access_key=CONFIG["MINIO_ROOT_PASSWORD"],
-        ) as s3:
-            response = await s3.get_object(Bucket=CONFIG["S3_BUCKET"], Key=task.s3_object_key)
-            async with response["Body"] as stream:
-                ocr_text = (await stream.read()).decode("utf-8")
+                if not getattr(task, "s3_object_key", None):
+                    raise ValueError("Kein valider s3_object_key (Claim-Check) vorhanden.")
 
-        logger.info(
-            f"  -> Extrahieren der klinischen Parameter via lokaler GPU (Job #{task.job_id})."
-        )
+                # Async fetch from MinIO/S3
+                session = aioboto3.Session()
+                async with session.client(
+                    "s3",
+                    endpoint_url=CONFIG["MINIO_URL"],
+                    aws_access_key_id=CONFIG["MINIO_ROOT_USER"],
+                    aws_secret_access_key=CONFIG["MINIO_ROOT_PASSWORD"],
+                ) as s3:
+                    response = await s3.get_object(Bucket=CONFIG["S3_BUCKET"], Key=task.s3_object_key)
+                    async with response["Body"] as stream:
+                        ocr_text = (await stream.read()).decode("utf-8")
 
-        # Initialize self-healing LLM Client (Arch-Rule #2: max_retries=3)
-        config = LlmConfig(
-            max_retries=3,
-            temperature=0.1,  # Low temp for deterministic extraction
-            max_tokens=4096,
-        )
-        client = LlmRetryClient(config)
+                logger.info(
+                    f"  -> Extrahieren der klinischen Parameter via lokaler GPU (Job #{task.job_id})."
+                )
 
-        system_context = (
-            "Du bist ein medizinischer Dokumentations-Assistent. "
-            "Extrahiere die klinischen Daten in das vorgegebene JSON Schema."
-        )
-        prompt = (
-            "Aufgabe: Analysiere den folgenden Krankenhaus-Bericht und generiere "
-            "exakt EIN JSON Objekt mit allen gefundenen Werten. Erfinde keine Daten.\n\n"
-            f"--- OCR TEXT ---\n{ocr_text}\n--- ENDE OCR TEXT ---"
-        )
+                # Initialize self-healing LLM Client (Arch-Rule #2: max_retries=3)
+                config = LlmConfig(
+                    max_retries=3,
+                    temperature=0.1,  # Low temp for deterministic extraction
+                    max_tokens=4096,
+                )
+                client = LlmRetryClient(config)
 
-        try:
-            # Client hands ValidationError back to LLM automatically
-            bundle = await client.generate_structured(
-                prompt=prompt,
-                schema=BundleExtraction,
-                system_context=system_context,
-            )
+                system_context = (
+                    "Du bist ein medizinischer Dokumentations-Assistent. "
+                    "Extrahiere die klinischen Daten in das vorgegebene JSON Schema."
+                )
+                prompt = (
+                    "Aufgabe: Analysiere den folgenden Krankenhaus-Bericht und generiere "
+                    "exakt EIN JSON Objekt mit allen gefundenen Werten. Erfinde keine Daten.\n\n"
+                    f"--- OCR TEXT ---\n{ocr_text}\n--- ENDE OCR TEXT ---"
+                )
 
-            fhir_bundle_dict = json.loads(bundle.model_dump_json(exclude_none=True))
-            json_str = json.dumps(fhir_bundle_dict, indent=2, ensure_ascii=False)
+                try:
+                    # Client hands ValidationError back to LLM automatically
+                    bundle = await client.generate_structured(
+                        prompt=prompt,
+                        schema=BundleExtraction,
+                        system_context=system_context,
+                    )
 
-            # Persist Claim-Check Payload (non-blocking)
-            await asyncio.to_thread(
-                _update_job_sync, task.job_id, JobStatus.FHIR_GENERATED, fhir_json=json_str
-            )
+                    fhir_bundle_dict = json.loads(bundle.model_dump_json(exclude_none=True))
+                    json_str = json.dumps(fhir_bundle_dict, indent=2, ensure_ascii=False)
 
-            # Route to next pipeline stage (FHIR-Transformation)
-            export_msg = FhirExportMessage(job_id=task.job_id, bundle_json=json_str)
-            await channel.default_exchange.publish(
-                aio_pika.Message(
-                    body=export_msg.model_dump_json().encode("utf-8"),
-                    content_type="application/json",
-                    delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                ),
-                routing_key="fhir_export_queue",
-            )
+                    # Persist Claim-Check Payload (non-blocking)
+                    await asyncio.to_thread(
+                        _update_job_sync, task.job_id, JobStatus.FHIR_GENERATED, fhir_json=json_str
+                    )
 
-            await message.ack()
-            logger.info(f"  ✓ LLM Job #{task.job_id} beendet. Routing zur FHIR-Transformation ok.")
+                    # Route to next pipeline stage (FHIR-Transformation)
+                    export_msg = FhirExportMessage(job_id=task.job_id, bundle_json=json_str)
 
-        except LlmValidationError as e:
-            # Arch-Rule #3: Final Retry fails -> Manual DLQ Publish and explicit reject
-            logger.error(
-                f"  ✗ LLM Validation Error für Job #{task.job_id} (retries exhausted): {e}"
-            )
+                    out_headers = {}
+                    inject(out_headers)
 
-            await dlq_exchange.publish(
-                aio_pika.Message(
-                    body=message.body,
-                    headers={
-                        "x-error-type": "LlmValidationError",
-                        "x-validation-errors": str(e.validation_errors),
-                        "x-last-raw-output": str(e.last_raw_output)[:2000],
-                    },
-                ),
-                routing_key="",
-            )
-            await message.reject(requeue=False)
-            logger.info(
-                f"  -> Job #{task.job_id} wurde in llm_dlq verschoben und Message rejected."
-            )
+                    await channel.default_exchange.publish(
+                        aio_pika.Message(
+                            body=export_msg.model_dump_json().encode("utf-8"),
+                            content_type="application/json",
+                            headers=out_headers,
+                            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                        ),
+                        routing_key="fhir_export_queue",
+                    )
 
-            await asyncio.to_thread(
-                _update_job_sync,
-                task.job_id,
-                JobStatus.FAILED,
-                error_trace=f"LlmValidationError: {str(e)}",
-            )
+                    await message.ack()
+                    logger.info(f"  ✓ LLM Job #{task.job_id} beendet. Routing zur FHIR-Transformation ok.")
 
-    except Exception as e:
-        error_trace = traceback.format_exc()
-        logger.error(f"  ✗ Unbehandelter Fehler! {type(e).__name__}: {e}")
+                except LlmValidationError as e:
+                    # Arch-Rule #3: Final Retry fails -> Manual DLQ Publish and explicit reject
+                    logger.error(
+                        f"  ✗ LLM Validation Error für Job #{task.job_id} (retries exhausted): {e}"
+                    )
 
-        # Generic error handling sets DB and natively dead-letters (requeue=False)
-        try:
-            task = DocumentMetaData.model_validate_json(message.body)
-            await asyncio.to_thread(
-                _update_job_sync, task.job_id, JobStatus.FAILED, error_trace=error_trace
-            )
-        except Exception:
-            pass
+                    await dlq_exchange.publish(
+                        aio_pika.Message(
+                            body=message.body,
+                            headers={
+                                "x-error-type": "LlmValidationError",
+                                "x-validation-errors": str(e.validation_errors),
+                                "x-last-raw-output": str(e.last_raw_output)[:2000],
+                            },
+                        ),
+                        routing_key="",
+                    )
+                    await message.reject(requeue=False)
+                    logger.info(
+                        f"  -> Job #{task.job_id} wurde in llm_dlq verschoben und Message rejected."
+                    )
 
-        await message.reject(requeue=False)
+                    await message.reject(requeue=False)
+
+            except Exception as e:
+                error_trace = traceback.format_exc()
+                logger.error(f"  ✗ Unbehandelter Fehler! {type(e).__name__}: {e}")
+
+                # Generic error handling sets DB and natively dead-letters (requeue=False)
+                try:
+                    task = DocumentMetaData.model_validate_json(message.body)
+                    await asyncio.to_thread(
+                        _update_job_sync, task.job_id, JobStatus.FAILED, error_trace=error_trace
+                    )
+                except Exception:
+                    pass
+
+                await message.reject(requeue=False)
+    finally:
+        otel_context.detach(token)
 
 
 async def run_worker() -> None:
