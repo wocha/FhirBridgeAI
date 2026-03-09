@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
 from pydantic import BaseModel
 
 from fhirbridge.core.anonymizer import PiiScrubber
@@ -33,8 +34,8 @@ class PatientState(BaseModel):
 def test_scrub_and_unscrub_pydantic_model():
     scrubber = PiiScrubber(seed=123)
     patient = PatientState(
-        name="Sabine Müller",
-        city="München",
+        name="Sabine Mueller",
+        city="Berlin",
         birth_date="12.12.1990",
         details={"doctor": "Dr. Hans Meyer", "notes": "Behandelt in Hamburg"},
         tags=["Wichtig", "Hamburg", "12.12.1990"],
@@ -42,8 +43,8 @@ def test_scrub_and_unscrub_pydantic_model():
 
     scrubbed_model = scrubber.scrub_model(patient)
 
-    assert scrubbed_model.name != "Sabine Müller"
-    assert scrubbed_model.city != "München"
+    assert scrubbed_model.name != "Sabine Mueller"
+    assert scrubbed_model.city != "Berlin"
     assert scrubbed_model.birth_date != "12.12.1990"
     assert scrubbed_model.details["doctor"] != "Dr. Hans Meyer"
     assert scrubbed_model.details["notes"] != "Behandelt in Hamburg"
@@ -52,8 +53,8 @@ def test_scrub_and_unscrub_pydantic_model():
 
     unscrubbed_model = scrubber.unscrub_model(scrubbed_model)
 
-    assert unscrubbed_model.name == "Sabine Müller"
-    assert unscrubbed_model.city == "München"
+    assert unscrubbed_model.name == "Sabine Mueller"
+    assert unscrubbed_model.city == "Berlin"
     assert unscrubbed_model.birth_date == "12.12.1990"
     assert unscrubbed_model.details["doctor"] == "Dr. Hans Meyer"
     assert unscrubbed_model.details["notes"] == "Behandelt in Hamburg"
@@ -70,8 +71,9 @@ class SimpleSchema(BaseModel):
 from unittest.mock import AsyncMock  # noqa: E402
 
 
+@pytest.mark.asyncio
 @patch("llm_retry_client.httpx.AsyncClient")
-def test_llm_client_interceptor(mock_client_cls):
+async def test_llm_client_interceptor(mock_client_cls):
     # Determine what pseudos will be generated for "Klaus Wowereit" and "Berlin"
     scrubber = PiiScrubber(seed=999)
     pseudo_name = scrubber._register_mapping("Klaus Wowereit", scrubber.faker.name)
@@ -92,12 +94,12 @@ def test_llm_client_interceptor(mock_client_cls):
 
     client = LlmClient()
     prompt = "Extrahiere Name und Stadt."
-    context = "Der Patient heißt Klaus Wowereit aus Berlin."
+    context = "Der Patient heisst Klaus Wowereit aus Berlin."
 
     with patch("fhirbridge.core.llm_client.PiiScrubber") as mock_scrubber_cls:
         mock_scrubber_cls.return_value = scrubber
 
-        result = client.generate_structured_kdl(
+        result = await client.generate_structured_kdl(
             prompt=prompt,
             schema_class=SimpleSchema,
             context=context,
