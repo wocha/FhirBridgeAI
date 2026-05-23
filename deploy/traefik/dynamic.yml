@@ -1,0 +1,85 @@
+﻿# deploy/traefik/dynamic.yml
+# Socketless Traefik File-Provider config for KRITIS/Zero-Trust operation.
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/certs/local-cert.pem
+        keyFile: /etc/traefik/certs/local-key.pem
+
+http:
+  routers:
+    dashboard-router:
+      rule: "Host(`dashboard.docker.localhost`)"
+      entryPoints:
+        - websecure
+      service: oauth2-proxy-service
+      middlewares:
+        - strip-auth-headers
+      tls: {}
+
+    keycloak-router:
+      rule: "Host(`keycloak.docker.localhost`)"
+      entryPoints:
+        - websecure
+      service: keycloak-service
+      tls: {}
+
+    grafana-router:
+      rule: "Host(`grafana.docker.localhost`)"
+      entryPoints:
+        - websecure
+      service: grafana-service
+      tls: {}
+
+    ingestion-router:
+      rule: "Host(`ingestion.docker.localhost`)"
+      entryPoints:
+        - websecure
+      service: ingestion-service
+      tls: {}
+
+  services:
+    oauth2-proxy-service:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://oauth2-proxy:4180"
+
+    keycloak-service:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://keycloak:8080"
+
+    grafana-service:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: "http://grafana:3000"
+
+    ingestion-service:
+      loadBalancer:
+        passHostHeader: true
+        serversTransport: ingestion-upstream
+        servers:
+          - url: "https://ingestion-gateway:8443"
+
+  middlewares:
+    strip-auth-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-User: ""
+          X-Forwarded-Groups: ""
+          X-Forwarded-Email: ""
+          X-Forwarded-Preferred-Username: ""
+          X-Auth-Request-User: ""
+          X-Auth-Request-Email: ""
+          X-Auth-Request-Groups: ""
+          Authorization: ""
+
+  serversTransports:
+    ingestion-upstream:
+      rootCAs:
+        - /etc/traefik/certs/rootCA.pem

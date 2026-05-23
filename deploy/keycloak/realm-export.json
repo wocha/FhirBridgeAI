@@ -1,0 +1,95 @@
+{
+  "id": "FhirBridgeAI",
+  "realm": "FhirBridgeAI",
+  "enabled": true,
+  "attributes": {
+    "fhirbridge.dataset": "synthetic-demo-users",
+    "fhirbridge.notice": "All users in this realm export are synthetic demo accounts for local testing."
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "viewer",
+        "description": "Lesender Zugriff auf das System"
+      },
+      {
+        "name": "auditor",
+        "description": "Audit und Administrator-Rechte (SysAdmin)"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "streamlit-dashboard",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "publicClient": false,
+      "redirectUris": [
+        "https://dashboard.docker.localhost/oauth2/callback"
+      ],
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "multivalued": "true"
+          }
+        },
+        {
+          "name": "audience streamlit-dashboard",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "streamlit-dashboard",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ],
+      "webOrigins": [
+        "https://dashboard.docker.localhost"
+      ],
+      "baseUrl": "https://dashboard.docker.localhost"
+    }
+  ],
+  "users": [
+    {
+      "username": "demo-clinician-a",
+      "enabled": true,
+      "email": "demo-clinician-a@example.invalid",
+      "firstName": "Demo",
+      "lastName": "Clinician A",
+      "emailVerified": true,
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
+      "realmRoles": [
+        "auditor"
+      ]
+    },
+    {
+      "username": "demo-viewer-1",
+      "enabled": true,
+      "email": "demo-viewer-1@example.invalid",
+      "firstName": "Demo",
+      "lastName": "Viewer 1",
+      "emailVerified": true,
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
+      "realmRoles": [
+        "viewer"
+      ]
+    }
+  ]
+}
