@@ -19,7 +19,6 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import os
@@ -33,7 +32,7 @@ from tenacity import (
     before_sleep_log,
     retry_if_exception_type,
     stop_after_attempt,
-    wait_exponential,
+    wait_none,
 )
 
 LLM_GENERATION_DURATION = Histogram(
@@ -227,7 +226,7 @@ class LlmRetryClient:
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(self.config.max_retries),
-            wait=wait_exponential(multiplier=self.config.initial_backoff_seconds),
+            wait=wait_none(),
             retry=retry_if_exception_type(LlmValidationError),
             reraise=True,
             before_sleep=before_sleep_log(logger, logging.WARNING),
@@ -285,7 +284,7 @@ class LlmRetryClient:
 
         async for attempt in AsyncRetrying(
             stop=stop_after_attempt(self.config.max_retries),
-            wait=wait_exponential(multiplier=self.config.initial_backoff_seconds),
+            wait=wait_none(),
             retry=retry_if_exception_type(LlmValidationError),
             reraise=True,
             before_sleep=before_sleep_log(logger, logging.WARNING),
@@ -351,48 +350,34 @@ class LlmRetryClient:
     # ------------------------------------------------------------------
 
     async def _execute_http_with_backoff(self, url: str, payload: dict) -> str:
-        """Executes a POST request with exponential backoff on connection errors."""
+        """Executes a POST request without in-process sleep; broker handles retries."""
         async with httpx.AsyncClient(timeout=self.config.request_timeout_seconds) as client:
-            for attempt in range(self.config.max_retries):
-                if attempt > 0:
-                    backoff = self.config.initial_backoff_seconds * (2 ** (attempt - 1))
-                    logger.info("Backoff %.1fs before HTTP attempt %d", backoff, attempt + 1)
-                    await asyncio.sleep(backoff)
+            try:
+                result = await client.post(url, json=payload)
+                result.raise_for_status()
+                data = result.json()
+            except (httpx.RequestError, httpx.HTTPStatusError) as exc:
+                raise LlmConnectionError(
+                    message=f"Ollama request to {url} failed without broker retry handoff: {exc}",
+                    attempts=1,
+                ) from exc
 
-                try:
-                    result = await client.post(url, json=payload)
-                    result.raise_for_status()
-                    data = result.json()
-
-                    # Handle both ollama /api/generate and /api/chat response formats,
-                    # and OpenAI (vLLM) /v1/completions and /v1/chat/completions formats.
-                    if "response" in data:
-                        return str(data.get("response", "")).strip()
-                    if "message" in data:
-                        msg = data.get("message", {})
-                        if isinstance(msg, dict):
-                            return str(msg.get("content", "")).strip()
-                        return ""
-                    if "choices" in data and len(data["choices"]) > 0:
-                        choice = data["choices"][0]
-                        if "message" in choice:
-                            msg = choice["message"]
-                            if isinstance(msg, dict):
-                                return str(msg.get("content", "")).strip()
-                            return ""
-                        if "text" in choice:
-                            return str(choice.get("text", "")).strip()
+            if "response" in data:
+                return str(data.get("response", "")).strip()
+            if "message" in data:
+                msg = data.get("message", {})
+                if isinstance(msg, dict):
+                    return str(msg.get("content", "")).strip()
+                return ""
+            if "choices" in data and len(data["choices"]) > 0:
+                choice = data["choices"][0]
+                if "message" in choice:
+                    msg = choice["message"]
+                    if isinstance(msg, dict):
+                        return str(msg.get("content", "")).strip()
                     return ""
-
-                except (httpx.RequestError, httpx.HTTPStatusError) as exc:
-                    if attempt == self.config.max_retries - 1:
-                        raise LlmConnectionError(
-                            message=f"Ollama request to {url} failed after {self.config.max_retries} attempts: {exc}",
-                            attempts=attempt + 1,
-                        ) from exc
-                    else:
-                        logger.warning("HTTP Error on attempt %d: %s", attempt + 1, exc)
-
+                if "text" in choice:
+                    return str(choice.get("text", "")).strip()
             return ""
 
     def _build_initial_prompt(

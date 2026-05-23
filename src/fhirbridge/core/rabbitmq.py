@@ -3,33 +3,75 @@ RabbitMQ Setup and Message Models for FhirBridgeAI.
 Provides generic async connection initialization, queue setup, and DLX binding.
 """
 
+from __future__ import annotations
+
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from enum import StrEnum
 from typing import Any
 
 import aio_pika
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from fhirbridge.core.config import get_settings
+SECURITY_ALERT_QUEUE = "security_alert_queue"
+RECONCILIATION_QUEUE = "reconciliation_queue"
+OCR_TASK_QUEUE = "ocr_task_queue"
+LLM_EXTRACTION_QUEUE = "llm_extraction_queue"
+FHIR_EXPORT_QUEUE = "fhir_export_queue"
+AUTH_CONTEXT_DESTINATIONS = frozenset({OCR_TASK_QUEUE, LLM_EXTRACTION_QUEUE, FHIR_EXPORT_QUEUE})
 
-RABBITMQ_URL = get_settings().rabbitmq_url
+
+class IngestionSourceKind(StrEnum):
+    PDF_SCAN = "PDF_SCAN"
+    HL7_V2 = "HL7_V2"
 
 
-class OcrTaskMessage(BaseModel):
+class ClaimCheck(BaseModel):
+    bucket: str
+    object_key: str
+    media_type: str
+    sha256: str | None = None
+
+
+class WorkMessage(BaseModel):
+    event_id: str
+    trace_id: str
+    tenant_scope: str
+    aggregate_version: int
+    auth_context: str
     job_id: int
-    filepath: str
+    source_kind: IngestionSourceKind
+    submitted_filename: str
+    review_required: bool = Field(default=True)
 
 
-class DocumentMetaData(BaseModel):
-    job_id: int
-    filepath: str
-    s3_object_key: str
+class OcrTaskMessage(WorkMessage):
+    evidence: ClaimCheck
 
 
-class FhirExportMessage(BaseModel):
-    job_id: int
+class DocumentMetaData(WorkMessage):
+    document: ClaimCheck
+    evidence: ClaimCheck | None = None
+
+
+class FhirExportMessage(WorkMessage):
     bundle_json: str
+    processing: ClaimCheck
+    mapping: ClaimCheck
+
+
+def retry_queue_name(queue_name: str) -> str:
+    return f"{queue_name}.retry"
+
+
+def dlq_queue_name(queue_name: str) -> str:
+    return f"{queue_name}.dlq"
+
+
+def destination_requires_auth_context(destination: str) -> bool:
+    return destination in AUTH_CONTEXT_DESTINATIONS
 
 
 async def init_rabbitmq(
@@ -45,54 +87,92 @@ async def init_rabbitmq(
     prefetch_count = int(os.getenv("RABBITMQ_PREFETCH_COUNT", "1"))
     await channel.set_qos(prefetch_count=prefetch_count)
 
-    # 1. Dead Letter Exchange & Queue
-    dlx_exchange = await channel.declare_exchange(
-        "fhirbridge.dlx", aio_pika.ExchangeType.DIRECT, durable=True
-    )
-    dl_queue = await channel.declare_queue("dead_letter_queue", durable=True)
-    await dl_queue.bind(dlx_exchange, routing_key="dead_letter")
+    def get_dlx_args(qname: str) -> dict[str, Any]:
+        return {
+            "x-dead-letter-exchange": "amq.topic",
+            "x-dead-letter-routing-key": f"dlx.{qname}",
+        }
 
-    # DLX Arguments for main queues
-    queue_args: dict[str, Any] = {
-        "x-dead-letter-exchange": "fhirbridge.dlx",
-        "x-dead-letter-routing-key": "dead_letter",
+    # 1. Main Queues with DLX defined
+    queue_specs = {
+        OCR_TASK_QUEUE: OCR_TASK_QUEUE,
+        LLM_EXTRACTION_QUEUE: LLM_EXTRACTION_QUEUE,
+        FHIR_EXPORT_QUEUE: FHIR_EXPORT_QUEUE,
     }
+    queues: dict[str, Any] = {}
+    for alias, queue_name in queue_specs.items():
+        main_queue = await channel.declare_queue(queue_name, durable=True)
+        await channel.declare_queue(
+            retry_queue_name(queue_name),
+            durable=True,
+            arguments={
+                "x-dead-letter-exchange": "",
+                "x-dead-letter-routing-key": queue_name,
+            },
+        )
+        await channel.declare_queue(dlq_queue_name(queue_name), durable=True)
+        queues[alias] = main_queue
 
-    # 2. Main Queues
-    ocr_queue = await channel.declare_queue("ocr_task_queue", durable=True, arguments=queue_args)
-    llm_queue = await channel.declare_queue(
-        "llm_extraction_queue", durable=True, arguments=queue_args
-    )
-    fhir_export_queue = await channel.declare_queue(
-        "fhir_export_queue", durable=True, arguments=queue_args
-    )
+    await channel.declare_queue(SECURITY_ALERT_QUEUE, durable=True)
+    await channel.declare_queue(RECONCILIATION_QUEUE, durable=True)
 
-    # 3. Retry Exchange and Queue (Zero-Code Delay Pattern)
-    retry_exchange = await channel.declare_exchange(
-        "fhir_retry.dlx", aio_pika.ExchangeType.DIRECT, durable=True
-    )
-    # The retry queue routes dead messages back to the default exchange (""), directly to the fhir_export_queue
-    retry_queue_args: dict[str, Any] = {
-        "x-dead-letter-exchange": "",
-        "x-dead-letter-routing-key": "fhir_export_queue",
-    }
-    retry_queue = await channel.declare_queue(
-        "fhir_export_retry_queue", durable=True, arguments=retry_queue_args
-    )
-    await retry_queue.bind(retry_exchange, routing_key="fhir_export_retry")
-
-    return channel, {
-        "ocr_queue": ocr_queue,
-        "llm_queue": llm_queue,
-        "fhir_export_queue": fhir_export_queue,
-        "fhir_export_retry_queue": retry_queue,
-    }
+    return channel, queues
 
 
 @asynccontextmanager
 async def get_rabbitmq_connection() -> AsyncIterator[aio_pika.abc.AbstractRobustConnection]:
-    connection = await aio_pika.connect_robust(RABBITMQ_URL)
+    connection = await aio_pika.connect_robust(get_settings().require_rabbitmq_url())
     try:
         yield connection
     finally:
         await connection.close()
+
+
+async def publish_with_delay(
+    channel: aio_pika.abc.AbstractChannel,
+    *,
+    queue_name: str,
+    body: bytes,
+    delay_ms: int,
+    headers: dict[str, Any] | None = None,
+    message_id: str | None = None,
+    correlation_id: str | None = None,
+    content_type: str = "application/json",
+) -> None:
+    retry_headers = dict(headers or {})
+    retry_headers["x-retry-count"] = int(retry_headers.get("x-retry-count", 0)) + 1
+    await channel.default_exchange.publish(
+        aio_pika.Message(
+            body=body,
+            headers=retry_headers,
+            message_id=message_id,
+            correlation_id=correlation_id,
+            content_type=content_type,
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            expiration=str(delay_ms),
+        ),
+        routing_key=retry_queue_name(queue_name),
+    )
+
+
+async def publish_to_queue(
+    channel: aio_pika.abc.AbstractChannel,
+    *,
+    queue_name: str,
+    body: bytes,
+    headers: dict[str, Any] | None = None,
+    message_id: str | None = None,
+    correlation_id: str | None = None,
+    content_type: str = "application/json",
+) -> None:
+    await channel.default_exchange.publish(
+        aio_pika.Message(
+            body=body,
+            headers=headers or {},
+            message_id=message_id,
+            correlation_id=correlation_id,
+            content_type=content_type,
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+        ),
+        routing_key=queue_name,
+    )

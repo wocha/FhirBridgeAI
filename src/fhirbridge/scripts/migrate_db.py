@@ -1,51 +1,37 @@
-"""
-Database Migration Script.
-Adds the manual `ocr_text` and `fhir_json` columns to the existing SQLite database
-without deleting existing records.
-"""
+"""Apply controlled schema migrations for the FhirBridgeAI runtime database."""
+
+from __future__ import annotations
 
 import logging
-import sqlite3
-import sys
+
+from fhirbridge.core.config import get_settings
+from fhirbridge.core.database import get_sync_engine
+from fhirbridge.core.migrations import EXPECTED_SCHEMA_VERSION, apply_pending_migrations, get_current_schema_version
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
 
-DB_PATH = "data/dispatcher.db"
 
-
-def migrate() -> None:
+def migrate() -> int:
+    database_url = get_settings().require_database_url()
+    engine = get_sync_engine(database_url=database_url)
     try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
+        applied_versions = apply_pending_migrations(engine)
+        current_version = get_current_schema_version(engine)
+    finally:
+        engine.dispose()
 
-        # Add ocr_text if missing
-        try:
-            cursor.execute("ALTER TABLE jobs ADD COLUMN ocr_text TEXT;")
-            logging.info("Added 'ocr_text' column.")
-        except sqlite3.OperationalError as e:
-            if "duplicate column name" in str(e).lower():
-                logging.info("'ocr_text' already exists.")
-            else:
-                logging.error(f"Failed to add ocr_text: {e}")
-
-        # Add fhir_json if missing
-        try:
-            cursor.execute("ALTER TABLE jobs ADD COLUMN fhir_json TEXT;")
-            logging.info("Added 'fhir_json' column.")
-        except sqlite3.OperationalError as e:
-            if "duplicate column name" in str(e).lower():
-                logging.info("'fhir_json' already exists.")
-            else:
-                logging.error(f"Failed to add fhir_json: {e}")
-
-        conn.commit()
-        conn.close()
-        logging.info("Migration finished.")
-
-    except Exception as e:
-        logging.error(f"Database error: {e}")
-        sys.exit(1)
+    if applied_versions:
+        logger.info("Applied schema migration(s): %s", ", ".join(str(version) for version in applied_versions))
+    else:
+        logger.info("No pending migrations found.")
+    logger.info(
+        "Schema verification target=%s current=%s",
+        EXPECTED_SCHEMA_VERSION,
+        current_version,
+    )
+    return 0
 
 
 if __name__ == "__main__":
-    migrate()
+    raise SystemExit(migrate())

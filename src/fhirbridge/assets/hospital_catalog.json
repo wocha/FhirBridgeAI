@@ -1,11 +1,11 @@
 {
     "General Hospital": {
-        "name": "Wocharienklinikum Mitte",
+        "name": "Neustadt-Klinikum Mitte",
         "header_type": "modern",
         "color_hex": "#003366"
     },
     "Mass General": {
-        "name": "Universitätsmedizin Wocharien",
+        "name": "Musterstadt-Hospital",
         "header_type": "standard",
         "color_hex": "#8B0000"
     },
@@ -20,7 +20,7 @@
         "color_hex": "#000000"
     },
     "default": {
-        "name": "Wocharienklinikum",
+        "name": "Neustadt-Klinikum",
         "header_type": "standard",
         "color_hex": "#003366"
     }

@@ -1,51 +1,43 @@
-"""
-FHIR Export Worker Daemon
-=========================
-Consumes FHIR Bundles from the `fhir_export_queue` and exports them to an external FHIR server (e.g., HAPI-FHIR).
-Uses httpx for asynchronous HTTP requests with connection pooling.
-Enforces strict Pydantic FHIR Validation natively in RAM.
-Injects Conditional Updates to prevent duplications.
-"""
+"""FHIR export worker with deterministic reconciliation on downstream inconsistencies."""
+
+from __future__ import annotations
 
 import asyncio
 import json
 import logging
-import os
-import signal
-import traceback
-from functools import partial
 from typing import Any
 
 import aio_pika
 import aioboto3
 import httpx
 from fhir.resources.bundle import Bundle
-from opentelemetry import context as otel_context
-from opentelemetry.propagate import extract, inject
+from opentelemetry import trace
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from fhirbridge.core.database import Job, JobStatus, get_session_factory, init_db
-from fhirbridge.core.rabbitmq import (
-    FhirExportMessage,
-    get_rabbitmq_connection,
-    init_rabbitmq,
+from fhirbridge.core.auth import TokenExchangeService
+from fhirbridge.core.base_worker import BaseRabbitMQWorker
+from fhirbridge.core.config import get_settings
+from fhirbridge.core.database import (
+    JobStatus,
+    create_reconciliation_task_async,
+    get_async_engine,
+    get_async_session_factory,
+    get_or_create_read_model_async,
+    load_job_async,
+    record_consumed_message_async,
+    verify_runtime_schema_async,
 )
-from fhirbridge.core.telemetry import init_tracer
+from fhirbridge.core.failure_handling import (
+    DownstreamConsistencyError,
+    PermanentDataError,
+    TransientInfrastructureError,
+)
+from fhirbridge.core.rabbitmq import FhirExportMessage
+from fhirbridge.core.storage import s3_client_kwargs
 from fhirbridge.privacy.pseudonymizer import LocalAnonymizer
-
-CONFIG = {
-    "DB_PATH": os.getenv("DB_PATH", "data/dispatcher.db"),
-    "FHIR_SERVER_URL": os.getenv("FHIR_SERVER_URL", "http://localhost:8080/fhir"),
-    "FHIR_AUTH_BEARER": os.getenv("FHIR_AUTH_BEARER", ""),
-    "MINIO_URL": os.getenv("MINIO_URL", "http://minio:9000"),
-    "MINIO_ROOT_USER": os.getenv("MINIO_ROOT_USER", "admin"),
-    "MINIO_ROOT_PASSWORD": os.getenv("MINIO_ROOT_PASSWORD", "admin123"),
-    "S3_BUCKET": "ephemeral-payloads",
-}
 
 
 class CorrelationIdFilter(logging.Filter):
-    """Ensures correlation_id is present on all log records to prevent KeyError in formatter."""
-
     def filter(self, record: logging.LogRecord) -> bool:
         if not hasattr(record, "correlation_id"):
             record.correlation_id = "N/A"
@@ -59,45 +51,49 @@ logging.basicConfig(
 for handler in logging.root.handlers:
     handler.addFilter(CorrelationIdFilter())
 
-logger = logging.getLogger("FHIRExportWorker")
-
-engine = init_db(CONFIG["DB_PATH"])
-SessionFactory = get_session_factory(engine)
-
-tracer = init_tracer("fhir-export-worker")
+AsyncEngineRef: AsyncEngine | None = None
+AsyncSessionFactory: async_sessionmaker[AsyncSession] | None = None
 
 
-MAX_RETRIES = 5
-BASE_DELAY_MS = 2000
+def _get_database() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    global AsyncEngineRef, AsyncSessionFactory
+
+    if AsyncEngineRef is None:
+        AsyncEngineRef = get_async_engine()
+    if AsyncSessionFactory is None:
+        AsyncSessionFactory = get_async_session_factory(AsyncEngineRef)
+    return AsyncEngineRef, AsyncSessionFactory
 
 
-async def send_fhir_bundle(
-    client: httpx.AsyncClient, bundle_json: str, correlation_id: str
-) -> None:
-    """
-    Asynchronously POSTs a FHIR bundle to the configured FHIR server via the provided AsyncClient pool.
-    """
-    url = CONFIG["FHIR_SERVER_URL"]
-    headers = {
+def _fhir_server_url() -> str:
+    return get_settings().require_fhir_server_url()
+
+
+def _fhir_auth_headers(correlation_id: str) -> dict[str, str]:
+    settings = get_settings()
+    return {
         "Content-Type": "application/fhir+json",
         "X-Correlation-ID": correlation_id,
+        "Authorization": f"Bearer {settings.require_fhir_auth_bearer()}",
     }
 
-    if CONFIG["FHIR_AUTH_BEARER"]:
-        headers["Authorization"] = f"Bearer {CONFIG['FHIR_AUTH_BEARER']}"
 
-    response = await client.post(url, content=bundle_json, headers=headers)
-    response.raise_for_status()
+async def send_fhir_bundle(client: httpx.AsyncClient, bundle_json: str, correlation_id: str) -> None:
+    response = await client.post(
+        _fhir_server_url(),
+        content=bundle_json,
+        headers=_fhir_auth_headers(correlation_id),
+        timeout=httpx.Timeout(10.0),
+    )
+    if response.status_code == 429 or response.status_code >= 500:
+        raise TransientInfrastructureError(f"FHIR server transient response {response.status_code}")
+    if 400 <= response.status_code < 500:
+        raise PermanentDataError(f"Permanent client error {response.status_code}: {response.text}")
 
 
 def inject_idempotency_logic(bundle: Bundle) -> str:
-    """
-    Validates a FHIR bundle and injects `ifNoneExist` logical rules for idempotency.
-    Returns the updated bundle as a JSON string.
-    """
     if bundle.type not in ["transaction", "batch"]:
         bundle.type = "transaction"
-
     if bundle.entry:
         for entry in bundle.entry:
             if not entry.request:
@@ -105,299 +101,156 @@ def inject_idempotency_logic(bundle: Bundle) -> str:
 
                 resource_name = entry.resource.__class__.__name__
                 entry.request = BundleEntryRequest(method="POST", url=resource_name)
-
-            # If it's a Patient, try to inject conditional create
             if entry.resource and entry.resource.__class__.__name__ == "Patient":
                 patient = entry.resource
-                # Attempt to find an identifier to use for the Conditional Create
                 if getattr(patient, "identifier", None) and len(patient.identifier) > 0:
-                    sysUrl = patient.identifier[0].system or ""
-                    val = patient.identifier[0].value or ""
-                    if sysUrl and val:
-                        entry.request.ifNoneExist = f"identifier={sysUrl}|{val}"
-
+                    system_url = patient.identifier[0].system or ""
+                    value = patient.identifier[0].value or ""
+                    if system_url and value:
+                        entry.request.ifNoneExist = f"identifier={system_url}|{value}"
     return bundle.model_dump_json(exclude_none=True)
 
 
-async def process_export_message(
-    message: aio_pika.abc.AbstractIncomingMessage,
-    client: httpx.AsyncClient,
-    channel: aio_pika.abc.AbstractChannel,
-) -> None:
-    """
-    RabbitMQ Consumer Callback for FHIR Export Tasks.
-    """
-    msg_headers = message.headers or {}
-    ctx = extract(msg_headers)
-
-    token = otel_context.attach(ctx)
-    try:
-        with tracer.start_as_current_span("process_export_message", context=ctx) as span:
-            async with message.process(requeue=False, ignore_processed=True):
-                correlation_id = "unknown"
-                if message.correlation_id:
-                    correlation_id = str(message.correlation_id)
-                elif message.headers and "correlation_id" in message.headers:
-                    correlation_id = str(message.headers["correlation_id"])
-
-                retry_count = 0
-                if message.headers and "x-retry-count" in message.headers:
-                    retry_count = int(message.headers["x-retry-count"])
-
-                try:
-                    task = FhirExportMessage.model_validate_json(message.body)
-                    span.set_attribute("job_id", task.job_id)
-                    span.set_attribute("retry_count", retry_count)
-
-                    if correlation_id == "unknown":
-                        correlation_id = f"job-{task.job_id}"
-
-                    logger.info(
-                        f"Starte FHIR Export für Job #{task.job_id} (Attempt {retry_count + 1})",
-                        extra={"correlation_id": correlation_id},
-                    )
-
-                    with SessionFactory() as session:
-                        job = session.query(Job).filter_by(id=task.job_id).first()
-                        if job:
-                            job.status = JobStatus.EXPORTING
-                            session.commit()
-
-                    # 1. CLAIM-CHECK DE-ANONYMIZATION
-                    logger.info(
-                        f"  -> Retrieving Vault Mapping and De-anonymizing data for Job #{task.job_id}...",
-                        extra={"correlation_id": correlation_id},
-                    )
-                    mapping_key = f"mappings/{task.job_id}.json"
-
-                    session_s3 = aioboto3.Session()
-                    async with session_s3.client(
-                        "s3",
-                        endpoint_url=CONFIG["MINIO_URL"],
-                        aws_access_key_id=CONFIG["MINIO_ROOT_USER"],
-                        aws_secret_access_key=CONFIG["MINIO_ROOT_PASSWORD"],
-                    ) as s3:
-                        try:
-                            response = await s3.get_object(Bucket=CONFIG["S3_BUCKET"], Key=mapping_key)
-                            mapping_data = await response["Body"].read()
-                            mapping = json.loads(mapping_data.decode("utf-8"))
-                        except Exception as e:
-                            logger.error(f"  [!] Vault Error: Failed to retrieve mapping {mapping_key}: {e}", extra={"correlation_id": correlation_id})
-                            raise ValueError(f"Vault Error: Failed to retrieve mapping: {e}")
-
-                    extraction_data_masked = json.loads(task.bundle_json)
-                    anonymizer = LocalAnonymizer()
-                    extraction_data = anonymizer.deanonymize(extraction_data_masked, mapping)
-
-                    # 2. MAPPING TO FHIR BUNDLE + STRICT VALIDATION + IDEMPOTENCY INJECTION
-                    logger.info(
-                        f"  -> Mapping BundleExtraction to FHIR Transaction Bundle for Job #{task.job_id} natively via fhir.resources...",
-                        extra={"correlation_id": correlation_id},
-                    )
-
-                    fhir_bundle_dict = {
-                        "resourceType": "Bundle",
-                        "type": "transaction",
-                        "entry": []
-                    }
-
-                    if "Patient" in extraction_data and extraction_data["Patient"]:
-                        fhir_bundle_dict["entry"].append({
-                            "resource": extraction_data["Patient"],
-                            "request": {"method": "POST", "url": "Patient"}
-                        })
-
-                    if "Encounter" in extraction_data and extraction_data["Encounter"]:
-                        fhir_bundle_dict["entry"].append({
-                            "resource": extraction_data["Encounter"],
-                            "request": {"method": "POST", "url": "Encounter"}
-                        })
-
-                    bundle = Bundle.model_validate(fhir_bundle_dict)
-                    safe_bundle_json = inject_idempotency_logic(bundle)
-
-                    # 3. SEND WITH INJECTED CLIENT (POOL)
-                    await send_fhir_bundle(client, safe_bundle_json, correlation_id)
-
-                    # 4. ZERO-TRUST VAULT CLEANUP
-                    try:
-                        async with session_s3.client(
-                            "s3",
-                            endpoint_url=CONFIG["MINIO_URL"],
-                            aws_access_key_id=CONFIG["MINIO_ROOT_USER"],
-                            aws_secret_access_key=CONFIG["MINIO_ROOT_PASSWORD"],
-                        ) as s3:
-                            await s3.delete_object(Bucket=CONFIG["S3_BUCKET"], Key=mapping_key)
-                            await s3.delete_object(Bucket=CONFIG["S3_BUCKET"], Key=f"job_{task.job_id}_payload.txt")
-                    except Exception as e:
-                        logger.warning(
-                            f"  [!] Could not cleanup Vault for Job #{task.job_id}: {e}",
-                            extra={"correlation_id": correlation_id},
-                        )
-
-                    with SessionFactory() as session:
-                        job = session.query(Job).filter_by(id=task.job_id).first()
-                        if job:
-                            job.status = JobStatus.EXPORTED
-                            session.commit()
-
-                    await message.ack()
-                    logger.info(
-                        f"  ✓ FHIR Export erfolgreich. Job #{task.job_id} abgeschlossen.",
-                        extra={"correlation_id": correlation_id},
-                    )
-
-                except (TimeoutError, httpx.HTTPStatusError, httpx.RequestError) as e:
-                    is_transient = True
-                    if isinstance(e, httpx.HTTPStatusError):
-                        if e.response.status_code < 500 and e.response.status_code != 429:
-                            is_transient = False
-
-                    if is_transient:
-                        if retry_count < MAX_RETRIES:
-                            delay_ms = BASE_DELAY_MS * (2**retry_count)
-                            logger.warning(
-                                f"  ! Transient Network Error: {e}. Retrying job #{task.job_id} in {delay_ms}ms (Attempt {retry_count + 1}/{MAX_RETRIES})",
-                                extra={"correlation_id": correlation_id},
-                            )
-
-                            with SessionFactory() as session:
-                                job = session.query(Job).filter_by(id=task.job_id).first()
-                                if job:
-                                    job.status = JobStatus.EXPORTING
-                                    session.commit()
-
-                            headers = message.headers.copy() if message.headers else {}
-                            headers["x-retry-count"] = retry_count + 1
-                            headers["correlation_id"] = correlation_id
-                            inject(headers)
-
-                            import datetime
-
-                            retry_message = aio_pika.Message(
-                                body=message.body,
-                                headers=headers,
-                                expiration=datetime.timedelta(milliseconds=delay_ms),
-                                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                                correlation_id=correlation_id,
-                            )
-
-                            retry_exchange = await channel.get_exchange("fhir_retry.dlx")
-                            await retry_exchange.publish(retry_message, routing_key="fhir_export_retry")
-                            await message.ack()
-                            return
-                        else:
-                            logger.error(
-                                f"  ✗ Job #{task.job_id} gescheitert nach {MAX_RETRIES} Retries. Network Error: {e}",
-                                extra={"correlation_id": correlation_id},
-                            )
-                            error_trace = traceback.format_exc()
-                            try:
-                                task = FhirExportMessage.model_validate_json(message.body)
-                                with SessionFactory() as session:
-                                    job = session.query(Job).filter_by(id=task.job_id).first()
-                                    if job:
-                                        job.status = JobStatus.EXPORT_FAILED
-                                        job.error_trace = error_trace  # type: ignore[assignment]
-                                        session.commit()
-                            except Exception:
-                                pass
-
-                            await message.reject(requeue=False)
-                            return
-
-                    # Permanent HTTP error
-                    logger.error(
-                        f"  ✗ Job permanent fehlgeschlagen! {e.response.status_code} - {e.response.text}",
-                        extra={"correlation_id": correlation_id},
-                    )
-                    error_trace = traceback.format_exc()
-                    try:
-                        task = FhirExportMessage.model_validate_json(message.body)
-                        with SessionFactory() as session:
-                            job = session.query(Job).filter_by(id=task.job_id).first()
-                            if job:
-                                job.status = JobStatus.EXPORT_FAILED
-                                job.error_trace = error_trace  # type: ignore[assignment]
-                                session.commit()
-                    except Exception:
-                        pass
-
-                    await message.reject(requeue=False)
-
-                except Exception as e:
-                    # Handles fhir.resources ValidationError, JSONDecodeError, or tenacity exhaustion for 5xx/Timeouts
-                    error_trace = traceback.format_exc()
-                    logger.error(
-                        f"  ✗ Job fehlgeschlagen! Unbekannter Fehler: {type(e).__name__}: {e}",
-                        extra={"correlation_id": correlation_id},
-                    )
-
-                    try:
-                        task = FhirExportMessage.model_validate_json(message.body)
-                        with SessionFactory() as session:
-                            job = session.query(Job).filter_by(id=task.job_id).first()
-                            if job:
-                                job.status = JobStatus.EXPORT_FAILED
-                                job.error_trace = error_trace  # type: ignore[assignment]
-                                session.commit()
-                    except Exception:
-                        pass
-
-                    await message.reject(requeue=False)
-    finally:
-        otel_context.detach(token)
-
-
 def mock_request_handler(request: httpx.Request) -> httpx.Response:
-    """Mock handler that simulates a successful FHIR server response."""
-    logger.info(f"[MOCK] Simulated FHIR server received 200 OK for {request.url}")
+    logging.info("[MOCK] Simulated FHIR server received 200 OK for %s", request.url)
     return httpx.Response(200, json={"resourceType": "Bundle", "type": "transaction-response"})
 
 
-async def run_worker() -> None:
-    logger.info("=======================================")
-    logger.info("🚀 FHIR Export Worker Active (AsyncIO & RabbitMQ)")
-    logger.info("=======================================")
+class FhirExportWorker(BaseRabbitMQWorker):
+    def __init__(self) -> None:
+        super().__init__("fhir-export-worker", "fhir_export_queue", prefetch_count=1)
+        self.session_s3 = aioboto3.Session()
+        self.client: httpx.AsyncClient | None = None
 
-    loop = asyncio.get_running_loop()
-    shutdown_event = asyncio.Event()
+    async def setup(self) -> None:
+        settings = get_settings()
+        settings.require_database_url()
+        settings.require_rabbitmq_url()
+        settings.require_internal_auth_context_secret()
+        settings.require_minio_credentials()
+        settings.require_minio_url()
+        settings.minio_http_verify()
+        settings.object_storage_buckets()
+        settings.require_fhir_server_url()
+        settings.require_fhir_auth_bearer()
+        settings.fhir_http_verify()
 
-    def signal_handler() -> None:
-        logger.info("Signal (SIGINT/SIGTERM) received. Initiating graceful shutdown...")
-        loop.call_soon_threadsafe(shutdown_event.set)
+        engine, _ = _get_database()
+        await verify_runtime_schema_async(engine)
 
-    try:
-        loop.add_signal_handler(signal.SIGINT, signal_handler)
-        loop.add_signal_handler(signal.SIGTERM, signal_handler)
-    except NotImplementedError:
-        # Fallback for Windows ProactorEventLoop
-        signal.signal(signal.SIGINT, lambda sig, frame: signal_handler())
-        signal.signal(signal.SIGTERM, lambda sig, frame: signal_handler())
+        client_kwargs: dict[str, Any] = {
+            "timeout": 10.0,
+            "verify": settings.fhir_http_verify(),
+        }
+        if "mock" in _fhir_server_url().lower():
+            self.logger.info("Configured with MOCK transport.")
+            client_kwargs["transport"] = httpx.MockTransport(mock_request_handler)
+        self.client = httpx.AsyncClient(**client_kwargs)
 
-    # Setup the long-lived httpx AsyncClient (Connection Pooling)
-    client_kwargs: dict[str, Any] = {"timeout": 10.0}
-    if "mock" in CONFIG["FHIR_SERVER_URL"].lower():
-        logger.info("Configured with MOCK Transport (12-Factor compliant testing).")
-        client_kwargs["transport"] = httpx.MockTransport(mock_request_handler)
+    async def teardown(self) -> None:
+        if self.client:
+            await self.client.aclose()
 
-    async with httpx.AsyncClient(**client_kwargs) as client:
-        async with get_rabbitmq_connection() as connection:
-            channel, queues = await init_rabbitmq(connection)
-            export_queue = queues["fhir_export_queue"]
+    async def process_message(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
+        task = FhirExportMessage.model_validate_json(message.body)
+        span = trace.get_current_span()
+        span.set_attribute("job_id", task.job_id)
+        span.set_attribute("tenant_scope", task.tenant_scope)
+        span.set_attribute("source_kind", task.source_kind.value)
 
-            # Inject the client into the consumer
-            callback = partial(process_export_message, client=client, channel=channel)
-            await export_queue.consume(callback)
+        correlation_id = str(message.correlation_id or f"job-{task.job_id}")
+        token_exchange = TokenExchangeService.from_settings()
+        token_exchange.verify(
+            task.auth_context,
+            expected_tenant_scope=task.tenant_scope,
+            expected_event_id=task.event_id,
+        )
 
-            logger.info("Worker is waiting for tasks. Press Ctrl+C to exit.")
-            # Block until shutdown_event is set
-            await shutdown_event.wait()
+        try:
+            async with self.session_s3.client("s3", **s3_client_kwargs()) as s3:
+                response = await s3.get_object(Bucket=task.mapping.bucket, Key=task.mapping.object_key)
+                mapping_data = await response["Body"].read()
+                mapping = json.loads(mapping_data.decode("utf-8"))
+        except Exception as exc:
+            raise TransientInfrastructureError("Failed to retrieve de-anonymization mapping") from exc
 
-            logger.info(
-                "Graceful shutdown triggered. Waiting for in-flight tasks to finish and connections to close..."
+        extraction_data_masked = json.loads(task.bundle_json)
+        anonymizer = LocalAnonymizer()
+        extraction_data = anonymizer.deanonymize(extraction_data_masked, mapping)
+
+        fhir_bundle_dict: dict[str, Any] = {
+            "resourceType": "Bundle",
+            "type": "transaction",
+            "entry": [],
+        }
+        if "Patient" in extraction_data and extraction_data["Patient"]:
+            fhir_bundle_dict["entry"].append(
+                {"resource": extraction_data["Patient"], "request": {"method": "POST", "url": "Patient"}}
             )
+        if "Encounter" in extraction_data and extraction_data["Encounter"]:
+            fhir_bundle_dict["entry"].append(
+                {"resource": extraction_data["Encounter"], "request": {"method": "POST", "url": "Encounter"}}
+            )
+
+        bundle = Bundle.model_validate(fhir_bundle_dict)
+        safe_bundle_json = await asyncio.to_thread(lambda: inject_idempotency_logic(bundle))
+
+        if not self.client:
+            raise RuntimeError("HTTP client not initialized")
+        await send_fhir_bundle(self.client, safe_bundle_json, correlation_id)
+
+        _, session_factory = _get_database()
+        try:
+            async with session_factory() as session:
+                async with session.begin():
+                    job = await load_job_async(session, job_id=task.job_id)
+                    if not job:
+                        raise PermanentDataError(f"Unknown job_id {task.job_id}")
+                    if not await record_consumed_message_async(
+                        session,
+                        consumer_name=self.worker_name,
+                        event_id=task.event_id,
+                    ):
+                        return
+                    job.status = JobStatus.EXPORTED
+                    job.aggregate_version += 1
+                    job.required_read_version = job.aggregate_version
+                    job.output_path = f"{_fhir_server_url()}#correlation-id={correlation_id}"
+                    job.error_trace = None
+                    projection = await get_or_create_read_model_async(session, job_id=int(job.id))
+                    projection.required_version = int(job.aggregate_version)
+                    projection.visible_version = int(job.aggregate_version)
+                    projection.status = str(job.status.value)
+        except Exception as exc:
+            async with session_factory() as session:
+                async with session.begin():
+                    await create_reconciliation_task_async(
+                        session,
+                        job_id=task.job_id,
+                        source_event_id=task.event_id,
+                        failure_category="DOWNSTREAM_CONSISTENCY",
+                        payload={
+                            "job_id": task.job_id,
+                            "correlation_id": correlation_id,
+                            "reason": "status_update_failed_after_fhir_commit",
+                            "fhir_server_url": _fhir_server_url(),
+                            "mapping_bucket": task.mapping.bucket,
+                            "mapping_object_key": task.mapping.object_key,
+                            "processing_bucket": task.processing.bucket,
+                            "processing_object_key": task.processing.object_key,
+                        },
+                    )
+            raise DownstreamConsistencyError(
+                "FHIR export committed downstream but local status update failed",
+                details={"job_id": task.job_id, "event_id": task.event_id},
+            ) from exc
+
+        self.logger.info(
+            "FHIR export committed for job=%s; cleanup stays out of the commit window to preserve repair evidence",
+            task.job_id,
+        )
 
 
 if __name__ == "__main__":
-    asyncio.run(run_worker())
+    worker = FhirExportWorker()
+    asyncio.run(worker.run())

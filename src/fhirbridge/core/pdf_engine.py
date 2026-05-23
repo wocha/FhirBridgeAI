@@ -54,7 +54,7 @@ CATALOG_PATH = Path(__file__).parent.parent / "assets" / "hospital_catalog.json"
 
 def get_institution_mapping(synthea_name: str) -> dict:
     default_inst = {
-        "name": "Wocharienklinikum",
+        "name": "Neustadt-Klinikum",
         "header_type": "standard",
         "color": HexColor("#003366"),
     }
@@ -154,7 +154,7 @@ class Din5008Renderer(BasePdfRenderer):
         # Rücksendeangabe (Fensterbrief)
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(colors.black)
-        sender_line = "Wocharienklinikum | Musterstraße 10 | 12345 Wocharien"
+        sender_line = "Neustadt-Klinikum | Musterstraße 10 | 12345 Neustadt"
         canvas.drawString(20 * mm, address_y + 5 * mm, sender_line)
         sender_line_width = canvas.stringWidth(sender_line, "Helvetica", 7)
         canvas.setLineWidth(0.3)
@@ -171,7 +171,7 @@ class Din5008Renderer(BasePdfRenderer):
         date_y = A4[1] - 105 * mm
         # Use first word of hospital name as city fallback
         city = inst["name"].split(" ")[0] if inst["name"] else "Klinik"
-        city = city.replace("Klinikum", "Stadt").replace("Wocharienklinikum", "Wocharien")
+        city = city.replace("Neustadt-Klinikum", "Neustadt").replace("Klinikum", "Stadt")
         canvas.drawRightString(
             A4[0] - 20 * mm,
             date_y,

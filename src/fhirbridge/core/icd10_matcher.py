@@ -2,7 +2,7 @@
 ICD-10-GM Deterministic Matcher
 ================================
 Replaces the LLM hallucination risk with a fast, deterministic lookup.
-In production, this would read from a BfArM CSV/SQLite catalog.
+In production, this would read from a controlled BfArM catalog source.
 For this prototype, we use an in-memory dictionary with basic token matching.
 """
 

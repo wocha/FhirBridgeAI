@@ -1,39 +1,31 @@
 """
-KRITIS Observability Dashboard for FhirBridgeAI.
+KRITIS observability dashboard for FhirBridgeAI.
 
-CQRS Read-Only dashboard with RBAC (viewer/auditor) providing:
-- Pipeline Overview with KPIs and throughput charts
-- RabbitMQ queue health monitoring
-- Failed job quarantine inspector
-- Job-level audit trail (OCR Input vs FHIR Output)
-
-Air-gapped: No external CDN, no Google Fonts, no tracking.
-Run: streamlit run dashboard/app.py
+Security model:
+- Dashboard is reachable only behind oauth2-proxy.
+- Identity is accepted only from trusted proxy headers.
+- Queue status is read from Prometheus (not RabbitMQ Management API).
 """
 
-import json
 import logging
 import os
-from datetime import UTC, datetime, timedelta
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 import pandas as pd
 import streamlit as st
-import streamlit_authenticator as stauth
-from sqlalchemy import create_engine, func
-from sqlalchemy.orm import sessionmaker
 
-from fhirbridge.core.database import Job, JobStatus
+from fhirbridge.core.read_models import (
+    bind_materialized_read_model,
+    evaluate_materialized_version_gate,
+)
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# 1. Page Config & KRITIS Air-Gap Styling
-# ---------------------------------------------------------------------------
 st.set_page_config(
-    page_title="FhirBridgeAI – Observability",
-    page_icon="🏥",
+    page_title="FhirBridgeAI Observability",
+    page_icon="H",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -41,481 +33,451 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    .stApp { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+      .stApp { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     </style>
-""",
+    """,
     unsafe_allow_html=True,
 )
 
-# ---------------------------------------------------------------------------
-# 2. RBAC Authentication
-# ---------------------------------------------------------------------------
-CREDENTIALS: dict[str, Any] = {
-    "usernames": {
-        "viewer": {
-            "email": "viewer@fhirbridge.local",
-            "name": "Viewer",
-            "password": "viewer123",
-            "role": "viewer",
-        },
-        "auditor": {
-            "email": "auditor@fhirbridge.local",
-            "name": "Auditor",
-            "password": "auditor123",
-            "role": "auditor",
-        },
-    }
-}
+PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://prometheus:9090")
+PROMETHEUS_TIMEOUT = float(os.getenv("PROMETHEUS_TIMEOUT_SECONDS", "5"))
+REQUIRED_PROXY_HEADER = os.getenv("DASHBOARD_REQUIRED_PROXY_HEADER", "X-Auth-Request-User")
+DASHBOARD_API_BASE_URL = os.getenv("DASHBOARD_API_BASE_URL", "")
+DASHBOARD_API_CA_BUNDLE_PATH = os.getenv("DASHBOARD_API_CA_BUNDLE_PATH", "")
+DASHBOARD_API_TIMEOUT = float(os.getenv("DASHBOARD_API_TIMEOUT_SECONDS", "5"))
 
-# Hash passwords in-place on first run (idempotent – skips already-hashed)
-stauth.Hasher.hash_passwords(CREDENTIALS)
 
-COOKIE_CONFIG: dict[str, Any] = {
-    "expiry_days": 1,
-    "key": "kritis_dashboard_signature",
-    "name": "kritis_dashboard_session",
-}
+def _require_https_api_base_url() -> str:
+    base_url = DASHBOARD_API_BASE_URL.strip()
+    if not base_url:
+        raise RuntimeError("DASHBOARD_API_BASE_URL is required")
+    parsed = urlparse(base_url)
+    if parsed.scheme.lower() != "https":
+        raise RuntimeError("DASHBOARD_API_BASE_URL must use https://")
+    if not parsed.netloc:
+        raise RuntimeError("DASHBOARD_API_BASE_URL must include a host")
+    return base_url.rstrip("/")
 
-authenticator = stauth.Authenticate(
-    credentials=CREDENTIALS,
-    cookie_name=COOKIE_CONFIG["name"],
-    cookie_key=COOKIE_CONFIG["key"],
-    cookie_expiry_days=COOKIE_CONFIG["expiry_days"],
-)
 
-# Sidebar login
+def _require_api_ca_bundle_path() -> str:
+    bundle_path = DASHBOARD_API_CA_BUNDLE_PATH.strip()
+    if not bundle_path:
+        raise RuntimeError("DASHBOARD_API_CA_BUNDLE_PATH is required for dashboard API TLS")
+    if not os.path.isfile(bundle_path):
+        raise RuntimeError("DASHBOARD_API_CA_BUNDLE_PATH must point to an existing CA bundle")
+    return bundle_path
+
+
+API_BASE_URL = _require_https_api_base_url()
+API_CA_BUNDLE_PATH = _require_api_ca_bundle_path()
+
+
+def _read_headers() -> dict[str, str]:
+    try:
+        headers = st.context.headers
+        return dict(headers.items())
+    except AttributeError:
+        try:
+            from streamlit.web.server.websocket_headers import _get_websocket_headers
+
+            return _get_websocket_headers() or {}
+        except Exception:
+            return {}
+
+
+def _header_value(headers: dict[str, str], key: str) -> str:
+    for candidate in (key, key.lower()):
+        if candidate in headers and headers[candidate]:
+            return str(headers[candidate]).strip()
+    return ""
+
+
+def _derive_identity(headers: dict[str, str]) -> tuple[str, str]:
+    proxy_user = _header_value(headers, REQUIRED_PROXY_HEADER)
+    if not proxy_user:
+        raise PermissionError(
+            f"Required trusted proxy header '{REQUIRED_PROXY_HEADER}' is missing."
+        )
+
+    forwarded_user = _header_value(headers, "X-Forwarded-User")
+    if forwarded_user and forwarded_user != proxy_user:
+        raise PermissionError(
+            "Header mismatch between trusted proxy identity and forwarded user."
+        )
+
+    roles_raw = _header_value(headers, "X-Auth-Request-Groups") or _header_value(
+        headers, "X-Forwarded-Groups"
+    )
+    role = "auditor" if "auditor" in roles_raw.lower() else "viewer"
+    return proxy_user, role
+
+
+@st.cache_data(ttl=10)
+def _prom_query(query: str) -> list[dict[str, Any]]:
+    response = httpx.get(
+        f"{PROMETHEUS_URL}/api/v1/query",
+        params={"query": query},
+        timeout=PROMETHEUS_TIMEOUT,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    if payload.get("status") != "success":
+        raise RuntimeError(f"Prometheus query failed: {payload}")
+    return payload.get("data", {}).get("result", [])
+
+
+def _as_float(result_item: dict[str, Any]) -> float:
+    value = result_item.get("value", [0, "0"])  # [timestamp, value]
+    try:
+        return float(value[1])
+    except (IndexError, ValueError, TypeError):
+        return 0.0
+
+
+@st.cache_data(ttl=10)
+def fetch_queue_metrics() -> list[dict[str, Any]]:
+    ready_rows = _prom_query("rabbitmq_queue_messages_ready")
+    unacked_rows = _prom_query("rabbitmq_queue_messages_unacked")
+    consumer_rows = _prom_query("rabbitmq_queue_consumers")
+
+    queue_map: dict[str, dict[str, Any]] = {}
+
+    def ensure_queue(name: str) -> dict[str, Any]:
+        if name not in queue_map:
+            queue_map[name] = {
+                "queue": name,
+                "messages_ready": 0,
+                "messages_unacked": 0,
+                "consumers": 0,
+                "is_dlq": "dlx" in name.lower() or "dead" in name.lower(),
+            }
+        return queue_map[name]
+
+    for row in ready_rows:
+        queue_name = row.get("metric", {}).get("queue", "unknown")
+        ensure_queue(queue_name)["messages_ready"] = int(_as_float(row))
+
+    for row in unacked_rows:
+        queue_name = row.get("metric", {}).get("queue", "unknown")
+        ensure_queue(queue_name)["messages_unacked"] = int(_as_float(row))
+
+    for row in consumer_rows:
+        queue_name = row.get("metric", {}).get("queue", "unknown")
+        ensure_queue(queue_name)["consumers"] = int(_as_float(row))
+
+    return sorted(queue_map.values(), key=lambda entry: entry["queue"])
+
+
+def render_pipeline_overview(queue_rows: list[dict[str, Any]]) -> None:
+    st.header("Pipeline Overview")
+
+    total_queues = len(queue_rows)
+    total_ready = sum(int(row["messages_ready"]) for row in queue_rows)
+    total_unacked = sum(int(row["messages_unacked"]) for row in queue_rows)
+    total_consumers = sum(int(row["consumers"]) for row in queue_rows)
+    total_dlq_messages = sum(
+        int(row["messages_ready"]) for row in queue_rows if bool(row.get("is_dlq"))
+    )
+
+    cols = st.columns(5)
+    cols[0].metric("Queues", total_queues)
+    cols[1].metric("Messages Ready", total_ready)
+    cols[2].metric("Messages Unacked", total_unacked)
+    cols[3].metric("Consumers", total_consumers)
+    cols[4].metric("DLQ Messages", total_dlq_messages)
+
+    if total_dlq_messages > 0:
+        st.error(
+            f"Alert: {total_dlq_messages} message(s) are currently in dead-letter queues."
+        )
+    else:
+        st.success("No dead-letter queue backlog detected.")
+
+
+def render_message_queues(queue_rows: list[dict[str, Any]]) -> None:
+    st.header("Message Queues")
+
+    if not queue_rows:
+        st.info("No queue metrics returned by Prometheus.")
+        return
+
+    df = pd.DataFrame(queue_rows)
+    df = df[["queue", "messages_ready", "messages_unacked", "consumers", "is_dlq"]]
+    df.columns = ["Queue", "Messages Ready", "Messages Unacked", "Consumers", "DLQ"]
+
+    st.dataframe(df, use_container_width=True, hide_index=True)
+
+
+def render_security_posture(username: str, role: str) -> None:
+    st.header("Security Posture")
+    st.markdown("**Enforced controls in this dashboard runtime:**")
+    st.markdown("- Identity accepted only from trusted oauth2-proxy headers.")
+    st.markdown("- Queue state sourced from Prometheus, not RabbitMQ admin API.")
+    st.markdown("- Read-model policy sourced from the backend read-model endpoint, not URL parameters.")
+    st.markdown(f"- Active principal: `{username}` (`{role}`).")
+
+
+def _forward_bearer_token(headers: dict[str, str]) -> str:
+    direct_authorization = _header_value(headers, "Authorization")
+    if direct_authorization.lower().startswith("bearer "):
+        return direct_authorization
+
+    for candidate in ("X-Forwarded-Access-Token", "X-Auth-Request-Access-Token"):
+        token = _header_value(headers, candidate)
+        if token:
+            return token if token.lower().startswith("bearer ") else f"Bearer {token}"
+    return ""
+
+
+@st.cache_data(ttl=5, show_spinner=False)
+def fetch_dashboard_read_model_state(
+    *,
+    bearer_token: str,
+    job_id: int | None,
+    document_id: str | None,
+) -> dict[str, Any]:
+    params: dict[str, Any] = {}
+    if job_id is not None:
+        params["job_id"] = job_id
+    if document_id:
+        params["document_id"] = document_id
+
+    response = httpx.get(
+        f"{API_BASE_URL}/api/v1/read-models/dashboard",
+        params=params,
+        headers={"Authorization": bearer_token},
+        timeout=DASHBOARD_API_TIMEOUT,
+        verify=API_CA_BUNDLE_PATH,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+@st.cache_data(ttl=5, show_spinner=False)
+def fetch_manual_review_state(*, bearer_token: str, job_id: int) -> dict[str, Any]:
+    response = httpx.get(
+        f"{API_BASE_URL}/api/v1/manual-review/{job_id}",
+        headers={"Authorization": bearer_token},
+        timeout=DASHBOARD_API_TIMEOUT,
+        verify=API_CA_BUNDLE_PATH,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def submit_manual_review_decision(*, bearer_token: str, job_id: int, decision: str, notes: str) -> dict[str, Any]:
+    response = httpx.post(
+        f"{API_BASE_URL}/api/v1/manual-review/{job_id}/decision",
+        headers={"Authorization": bearer_token},
+        json={"decision": decision, "notes": notes or None},
+        timeout=DASHBOARD_API_TIMEOUT,
+        verify=API_CA_BUNDLE_PATH,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def render_read_model_gate(headers: dict[str, str]) -> None:
+    st.header("Read Model Gate")
+
+    job_id_raw = st.query_params.get("job_id")
+    document_id = st.query_params.get("document_id")
+    requested_raw = st.query_params.get("required_version")
+
+    if job_id_raw is None and document_id is None:
+        st.info(
+            "Pass `job_id` or `document_id` and optionally `required_version` to evaluate "
+            "the materialized dashboard read model."
+        )
+        return
+
+    try:
+        job_id = int(job_id_raw) if job_id_raw is not None else None
+    except ValueError:
+        st.error("`job_id` must be an integer.")
+        return
+
+    requested_version: int | None = None
+    if requested_raw is not None:
+        try:
+            requested_version = int(requested_raw)
+        except ValueError:
+            st.error("`required_version` must be an integer when provided.")
+            return
+
+    bearer_token = _forward_bearer_token(headers)
+    if not bearer_token:
+        st.error("Clinical read-model policy cannot be evaluated because no access token reached the dashboard.")
+        return
+
+    try:
+        state = bind_materialized_read_model(
+            fetch_dashboard_read_model_state(
+                bearer_token=bearer_token,
+                job_id=job_id,
+                document_id=document_id,
+            )
+        )
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            st.warning("No materialized dashboard projection exists yet for this document.")
+            return
+        st.error(f"Read-model endpoint rejected the request: {exc}")
+        return
+    except Exception as exc:
+        logger.warning("Read-model lookup failed: %s", exc)
+        st.error(f"Unable to query the materialized read model: {exc}")
+        return
+
+    gate = evaluate_materialized_version_gate(
+        actual_required_version=state.required_version,
+        visible_version=state.visible_version,
+        requested_version=requested_version,
+    )
+    st.metric("Requested Version", requested_version if requested_version is not None else state.required_version)
+    st.metric("Materialized Required", gate.actual_required_version)
+    st.metric("Visible Version", gate.visible_version)
+    if gate.allowed:
+        st.success(gate.message)
+        st.caption(f"Clinical view unlocked for job {state.job_id} ({state.document_id}).")
+    else:
+        st.error(gate.message)
+        st.caption(
+            "Clinical content remains hidden until the backend projection reaches the required version."
+        )
+
+
+def render_manual_review(headers: dict[str, str], role: str) -> None:
+    st.header("Manual Review")
+
+    if role != "auditor":
+        st.error("Manual review controls are limited to auditor sessions behind oauth2-proxy.")
+        return
+
+    job_id_raw = st.query_params.get("job_id")
+    if job_id_raw is None:
+        st.info("Pass `job_id` to open a backend-mediated manual review case.")
+        return
+
+    try:
+        job_id = int(job_id_raw)
+    except ValueError:
+        st.error("`job_id` must be an integer.")
+        return
+
+    bearer_token = _forward_bearer_token(headers)
+    if not bearer_token:
+        st.error("Manual review cannot run because no access token reached the dashboard.")
+        return
+
+    try:
+        review = fetch_manual_review_state(bearer_token=bearer_token, job_id=job_id)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            st.warning("No manual review case exists yet for this job.")
+            return
+        if exc.response.status_code == 403:
+            st.error("The backend rejected this review request due to RBAC policy.")
+            return
+        st.error(f"Manual review endpoint rejected the request: {exc}")
+        return
+    except Exception as exc:
+        logger.warning("Manual review lookup failed: %s", exc)
+        st.error(f"Unable to query the manual review endpoint: {exc}")
+        return
+
+    meta_cols = st.columns(4)
+    meta_cols[0].metric("Job", review["job_id"])
+    meta_cols[1].metric("Review Status", review["review_status"])
+    meta_cols[2].metric("Job Status", review["job_status"])
+    meta_cols[3].metric("Visible Version", review["visible_version"])
+
+    st.caption(
+        f"Source: `{review['source_kind']}` | File: `{review['submitted_filename']}` | "
+        f"Evidence SHA-256: `{review.get('evidence_sha256') or 'n/a'}`"
+    )
+    st.info(
+        f"Qdrant remains advisory-only here: {review['qdrant_reason']} "
+        f"({review['qdrant_blocking_adr'] or 'no blocking ADR'})."
+    )
+
+    if review.get("pseudonymized_preview"):
+        st.subheader("Pseudonymized Preview")
+        st.text_area(
+            "Review Source",
+            review["pseudonymized_preview"],
+            height=240,
+            disabled=True,
+        )
+
+    if review.get("extracted_bundle_json"):
+        st.subheader("Extracted Bundle")
+        st.code(review["extracted_bundle_json"], language="json")
+
+    decision = st.selectbox(
+        "Decision",
+        options=[("approve", "Approve export"), ("reject", "Reject to quarantine")],
+        format_func=lambda option: option[1],
+    )
+    notes = st.text_area("Review Notes", max_chars=2000, placeholder="Why are you approving or rejecting this case?")
+
+    if st.button("Submit Review Decision", type="primary"):
+        try:
+            result = submit_manual_review_decision(
+                bearer_token=bearer_token,
+                job_id=job_id,
+                decision=decision[0],
+                notes=notes,
+            )
+            st.cache_data.clear()
+            st.success(result["message"])
+        except httpx.HTTPStatusError as exc:
+            st.error(f"Manual review submission failed: {exc}")
+        except Exception as exc:
+            logger.warning("Manual review submission failed: %s", exc)
+            st.error(f"Unable to submit the manual review decision: {exc}")
+
+
+headers = _read_headers()
 try:
-    authenticator.login(location="sidebar")
-except Exception as e:
-    st.sidebar.error(f"Login error: {e}")
-
-auth_status = st.session_state.get("authentication_status")
-
-if auth_status is False:
-    st.sidebar.error("❌ Ungültige Anmeldedaten.")
-    st.stop()
-elif auth_status is None:
-    st.sidebar.warning("🔒 Bitte anmelden, um das Dashboard zu nutzen.")
+    current_user, current_role = _derive_identity(headers)
+except PermissionError as exc:
+    st.error(f"Access denied: {exc}")
     st.stop()
 
-# --- Authenticated from here ---
-current_username: str = st.session_state.get("username", "")
-current_role: str = CREDENTIALS["usernames"].get(current_username, {}).get("role", "viewer")
+st.sidebar.success(f"Authenticated as {current_user} ({current_role})")
 
-st.sidebar.success(f"Angemeldet als **{current_username}** ({current_role})")
-authenticator.logout("Logout", "sidebar")
-
-# ---------------------------------------------------------------------------
-# 3. Navigation (Sidebar)
-# ---------------------------------------------------------------------------
 page = st.sidebar.radio(
     "Navigation",
     [
-        "📊 Pipeline Overview",
-        "📨 Message Queues",
-        "🔴 Quarantine / Failed Jobs",
-        "🔍 Job Inspector",
+        "Pipeline Overview",
+        "Message Queues",
+        "Security Posture",
+        "Read Model Gate",
+        "Manual Review",
     ],
 )
 
-if st.sidebar.button("🔄 Daten aktualisieren"):
+if st.sidebar.button("Refresh Data"):
     st.cache_data.clear()
 
-# ---------------------------------------------------------------------------
-# 4. Data Layer – Postgres (Read-Only, Cached)
-# ---------------------------------------------------------------------------
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
-
-
-@st.cache_resource
-def get_readonly_session_factory() -> sessionmaker:  # type: ignore[type-arg]
-    """Create a read-only SQLAlchemy session factory from DATABASE_URL."""
-    if not DATABASE_URL:
-        return None  # type: ignore[return-value]
-    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-    return sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-
-session_factory = get_readonly_session_factory()
-if session_factory is None:
-    st.error("❌ DATABASE_URL ist nicht gesetzt. Dashboard kann nicht starten.")
-    st.stop()
-
-
-@st.cache_data(ttl=10)
-def fetch_job_kpis() -> dict[str, int]:
-    """Fetch aggregated job counts per status."""
-    with session_factory() as session:
-        rows = session.query(Job.status, func.count(Job.id)).group_by(Job.status).all()
-    counts: dict[str, int] = {s.value: 0 for s in JobStatus}
-    for status, count in rows:
-        counts[status if isinstance(status, str) else status.value] = count
-    return counts
-
-
-@st.cache_data(ttl=10)
-def fetch_throughput_24h() -> pd.DataFrame:
-    """Fetch hourly job throughput for the last 24 hours (Postgres date_trunc)."""
-    cutoff = datetime.now(tz=UTC) - timedelta(hours=24)
-    with session_factory() as session:
-        rows = (
-            session.query(
-                func.date_trunc("hour", Job.updated_at).label("hour"),
-                Job.status,
-                func.count(Job.id).label("count"),
-            )
-            .filter(Job.updated_at >= cutoff)
-            .group_by("hour", Job.status)
-            .order_by("hour")
-            .all()
-        )
-    if not rows:
-        return pd.DataFrame()
-    df = pd.DataFrame(rows, columns=["hour", "status", "count"])
-    df["status"] = df["status"].apply(lambda s: s.value if hasattr(s, "value") else s)
-    return df
-
-
-@st.cache_data(ttl=10)
-def fetch_failed_jobs() -> list[dict[str, Any]]:
-    """Fetch jobs with FAILED or EXPORT_FAILED status."""
-    with session_factory() as session:
-        jobs = (
-            session.query(Job)
-            .filter(Job.status.in_([JobStatus.FAILED, JobStatus.EXPORT_FAILED]))
-            .order_by(Job.updated_at.desc())
-            .all()
-        )
-        return [
-            {
-                "id": j.id,
-                "filepath": j.filepath,
-                "status": j.status.value if hasattr(j.status, "value") else j.status,
-                "error_trace": j.error_trace or "",
-                "updated_at": str(j.updated_at) if j.updated_at else "",
-            }
-            for j in jobs
-        ]
-
-
-@st.cache_data(ttl=10)
-def fetch_all_jobs_summary() -> list[dict[str, Any]]:
-    """Fetch all jobs (summary) for the Job Inspector dropdown."""
-    with session_factory() as session:
-        jobs = session.query(Job).order_by(Job.updated_at.desc()).all()
-        return [
-            {
-                "id": j.id,
-                "filepath": j.filepath,
-                "status": j.status.value if hasattr(j.status, "value") else j.status,
-            }
-            for j in jobs
-        ]
-
-
-@st.cache_data(ttl=10)
-def fetch_job_detail(job_id: int) -> dict[str, Any] | None:
-    """Fetch full detail for a single job."""
-    with session_factory() as session:
-        j = session.query(Job).filter(Job.id == job_id).first()
-        if not j:
-            return None
-        return {
-            "id": j.id,
-            "filepath": j.filepath,
-            "status": j.status.value if hasattr(j.status, "value") else j.status,
-            "ocr_text": j.ocr_text or "",
-            "fhir_json": j.fhir_json or "",
-            "error_trace": j.error_trace or "",
-            "created_at": str(j.created_at) if j.created_at else "",
-            "updated_at": str(j.updated_at) if j.updated_at else "",
-        }
-
-
-# ---------------------------------------------------------------------------
-# 5. Data Layer – RabbitMQ Management API
-# ---------------------------------------------------------------------------
-RABBITMQ_MANAGEMENT_URL = os.environ.get("RABBITMQ_MANAGEMENT_URL", "")
-RABBITMQ_USER = os.environ.get("RABBITMQ_DEFAULT_USER", "guest")
-RABBITMQ_PASS = os.environ.get("RABBITMQ_DEFAULT_PASS", "guest")
-
-
-@st.cache_data(ttl=10)
-def fetch_queue_metrics() -> tuple[list[dict[str, Any]], bool]:
-    """
-    Fetch queue metrics from RabbitMQ Management API.
-    Returns (queue_list, success_flag).
-    """
-    if not RABBITMQ_MANAGEMENT_URL:
-        return [], False
-    try:
-        resp = httpx.get(
-            f"{RABBITMQ_MANAGEMENT_URL}/api/queues",
-            auth=(RABBITMQ_USER, RABBITMQ_PASS),
-            timeout=5.0,
-        )
-        resp.raise_for_status()
-        queues = resp.json()
-        return [
-            {
-                "name": q.get("name", "unknown"),
-                "messages_ready": q.get("messages_ready", 0),
-                "messages_unacked": q.get("messages_unacknowledged", 0),
-                "consumers": q.get("consumers", 0),
-                "is_dlq": "dlx" in q.get("name", "").lower() or "dead" in q.get("name", "").lower(),
-            }
-            for q in queues
-        ], True
-    except Exception as exc:
-        logger.warning("RabbitMQ Management API unreachable: %s", exc)
-        return [], False
-
-
-# ---------------------------------------------------------------------------
-# 6. Page Rendering
-# ---------------------------------------------------------------------------
-
-
-def render_pipeline_overview() -> None:
-    """Page 1: Pipeline Overview – KPIs, Progress Bar, Throughput Chart."""
-    st.header("📊 Pipeline Overview")
-
-    try:
-        kpis = fetch_job_kpis()
-    except Exception as e:
-        st.error(f"Fehler beim Laden der KPIs: {e}")
-        return
-
-    total = sum(kpis.values())
-    pending = kpis.get(JobStatus.PENDING.value, 0)
-    processing = (
-        kpis.get(JobStatus.OCR_PROCESSING.value, 0)
-        + kpis.get(JobStatus.LLM_EXTRACTION.value, 0)
-        + kpis.get(JobStatus.EXPORTING.value, 0)
-    )
-    success = kpis.get(JobStatus.FHIR_GENERATED.value, 0) + kpis.get(JobStatus.EXPORTED.value, 0)
-    failed = kpis.get(JobStatus.FAILED.value, 0)
-    export_failed = kpis.get(JobStatus.EXPORT_FAILED.value, 0)
-
-    # KPI Metrics
-    cols = st.columns(6)
-    cols[0].metric("Total Jobs", total)
-    cols[1].metric("Pending ⏳", pending)
-    cols[2].metric("Processing ⚙️", processing)
-    cols[3].metric("Success ✅", success)
-    cols[4].metric("Failed ❌", failed)
-    cols[5].metric("Export Failed ⚠️", export_failed)
-
-    # Progress Bar
-    st.subheader("Pipeline Fortschritt")
-    progress_ratio = success / total if total > 0 else 0.0
-    st.progress(min(progress_ratio, 1.0))
-    st.caption(f"{success} von {total} Jobs erfolgreich abgeschlossen ({progress_ratio:.0%})")
-
-    st.divider()
-
-    # Throughput Chart (last 24h)
-    st.subheader("Throughput (letzte 24h)")
-    try:
-        df = fetch_throughput_24h()
-    except Exception as e:
-        st.error(f"Fehler beim Laden der Throughput-Daten: {e}")
-        return
-
-    if df.empty:
-        st.info("⏳ Keine Throughput-Daten für die letzten 24 Stunden vorhanden.")
-    else:
-        df_pivot = df.pivot_table(
-            index="hour", columns="status", values="count", aggfunc="sum"
-        ).fillna(0)
-        st.bar_chart(df_pivot, use_container_width=True, height=350)
-
-
-def render_message_queues() -> None:
-    """Page 2: Message Queues – RabbitMQ queue health."""
-    st.header("📨 Message Queues")
-
-    queues, ok = fetch_queue_metrics()
-
-    if not ok:
-        st.warning(
-            "⚠️ RabbitMQ Management API nicht erreichbar. "
-            "Queue-Metriken sind aktuell nicht verfügbar."
-        )
-        return
-
-    if not queues:
-        st.info("Keine Queues gefunden.")
-        return
-
-    # Separate normal queues from DLQs
-    normal_queues = [q for q in queues if not q["is_dlq"]]
-    dlq_queues = [q for q in queues if q["is_dlq"]]
-
-    # Normal Queues
-    st.subheader("Active Queues")
-    if normal_queues:
-        df_normal = pd.DataFrame(normal_queues)[
-            ["name", "messages_ready", "messages_unacked", "consumers"]
-        ]
-        df_normal.columns = ["Queue", "Messages Ready", "Messages Unacked", "Consumers"]
-        st.dataframe(df_normal, use_container_width=True, hide_index=True)
-    else:
-        st.info("Keine aktiven Queues.")
-
-    st.divider()
-
-    # Dead-Letter Queues
-    st.subheader("🔴 Dead-Letter Queues (DLQ)")
-    if dlq_queues:
-        total_dlq_messages = sum(q["messages_ready"] for q in dlq_queues)
-        if total_dlq_messages > 0:
-            st.error(
-                f"🚨 ALARM: {total_dlq_messages} Nachrichten in Dead-Letter Queues! "
-                "Sofortige Untersuchung erforderlich."
-            )
-        else:
-            st.success("✅ Keine Nachrichten in Dead-Letter Queues.")
-
-        df_dlq = pd.DataFrame(dlq_queues)[
-            ["name", "messages_ready", "messages_unacked", "consumers"]
-        ]
-        df_dlq.columns = ["DLQ Name", "Messages Ready", "Messages Unacked", "Consumers"]
-        st.dataframe(df_dlq, use_container_width=True, hide_index=True)
-    else:
-        st.info("Keine Dead-Letter Queues konfiguriert.")
-
-
-def render_quarantine(role: str) -> None:
-    """Page 3: Quarantine / Failed Jobs – Error Inspector."""
-    st.header("🔴 Quarantine / Failed Jobs")
-
-    try:
-        failed_jobs = fetch_failed_jobs()
-    except Exception as e:
-        st.error(f"Fehler beim Laden der fehlgeschlagenen Jobs: {e}")
-        return
-
-    if not failed_jobs:
-        st.success("✅ Keine fehlgeschlagenen Jobs. Alle Systeme arbeiten normal.")
-        return
-
-    st.warning(f"⚠️ {len(failed_jobs)} Job(s) im Quarantäne-Status.")
-
-    for job in failed_jobs:
-        with st.expander(
-            f"Job #{job['id']} — {os.path.basename(job['filepath'])} "
-            f"[{job['status']}] — {job['updated_at']}"
-        ):
-            st.markdown(f"**Job ID:** `{job['id']}`")
-            st.markdown(f"**Dateipfad:** `{job['filepath']}`")
-            st.markdown(f"**Status:** `{job['status']}`")
-            st.markdown(f"**Letzte Aktualisierung:** `{job['updated_at']}`")
-
-            st.divider()
-
-            if role == "auditor":
-                st.markdown("**Error Trace:**")
-                if job["error_trace"]:
-                    st.code(job["error_trace"], language="text")
-                else:
-                    st.info("Kein Error Trace vorhanden.")
-            else:
-                st.info("🔒 Error Traces sind nur für die Rolle **auditor** sichtbar.")
-
-
-def render_job_inspector(role: str) -> None:
-    """Page 4: Job Inspector – OCR Input vs FHIR Output (auditor only)."""
-    st.header("🔍 Job Inspector")
-
-    if role != "auditor":
-        st.warning(
-            "🔒 Zugriff eingeschränkt: Der Job Inspector ist nur für "
-            "Benutzer mit der Rolle **auditor** verfügbar."
-        )
-        return
-
-    try:
-        all_jobs = fetch_all_jobs_summary()
-    except Exception as e:
-        st.error(f"Fehler beim Laden der Job-Liste: {e}")
-        return
-
-    if not all_jobs:
-        st.info("Keine Jobs in der Pipeline.")
-        return
-
-    # Dropdown to select a job
-    job_options = {
-        f"Job #{j['id']} — {os.path.basename(j['filepath'])} [{j['status']}]": j["id"]
-        for j in all_jobs
-    }
-    selected_label = st.selectbox("Job auswählen:", list(job_options.keys()))
-
-    if not selected_label:
-        return
-
-    selected_id = job_options[selected_label]
-
-    try:
-        detail = fetch_job_detail(selected_id)
-    except Exception as e:
-        st.error(f"Fehler beim Laden des Jobs: {e}")
-        return
-
-    if not detail:
-        st.error("Job nicht gefunden.")
-        return
-
-    st.markdown(
-        f"**Datei:** `{detail['filepath']}` | **Status:** `{detail['status']}` | "
-        f"**Erstellt:** `{detail['created_at']}` | **Aktualisiert:** `{detail['updated_at']}`"
-    )
-
-    if detail["error_trace"]:
-        with st.expander("⚠️ Error Trace"):
-            st.code(detail["error_trace"], language="text")
-
-    st.divider()
-
-    col_left, col_right = st.columns(2)
-
-    with col_left:
-        st.subheader("📄 Input (Raw OCR Text)")
-        if detail["ocr_text"]:
-            st.text_area(
-                "OCR Output",
-                detail["ocr_text"],
-                height=600,
-                disabled=True,
-                label_visibility="collapsed",
-            )
-        else:
-            st.info("Kein OCR-Text vorhanden (Job noch in Verarbeitung oder fehlgeschlagen).")
-
-    with col_right:
-        st.subheader("🏥 Output (FHIR JSON)")
-        if detail["fhir_json"]:
-            try:
-                parsed = json.loads(detail["fhir_json"])
-                st.json(parsed, expanded=True)
-            except json.JSONDecodeError:
-                st.code(detail["fhir_json"], language="json")
-        else:
-            st.info("Kein FHIR-Output vorhanden (Job noch in Verarbeitung oder fehlgeschlagen).")
-
-
-# ---------------------------------------------------------------------------
-# 7. Main Router
-# ---------------------------------------------------------------------------
-st.title("🏥 FhirBridgeAI – Observability Dashboard")
-st.caption("KRITIS-konformes Monitoring für die LLM-gesteuerte OCR-zu-FHIR Pipeline.")
-
-if page == "📊 Pipeline Overview":
-    render_pipeline_overview()
-elif page == "📨 Message Queues":
-    render_message_queues()
-elif page == "🔴 Quarantine / Failed Jobs":
-    render_quarantine(current_role)
-elif page == "🔍 Job Inspector":
-    render_job_inspector(current_role)
+st.title("FhirBridgeAI Observability Dashboard")
+st.caption("Zero-trust dashboard path with Prometheus-backed queue observability.")
+
+queue_metrics: list[dict[str, Any]] = []
+try:
+    queue_metrics = fetch_queue_metrics()
+except Exception as exc:
+    logger.warning("Prometheus queue metrics unavailable: %s", exc)
+    st.warning(f"Prometheus metrics are currently unavailable: {exc}")
+
+if page == "Pipeline Overview":
+    render_pipeline_overview(queue_metrics)
+elif page == "Message Queues":
+    render_message_queues(queue_metrics)
+elif page == "Read Model Gate":
+    render_read_model_gate(headers)
+elif page == "Manual Review":
+    render_manual_review(headers, current_role)
+else:
+    render_security_posture(current_user, current_role)

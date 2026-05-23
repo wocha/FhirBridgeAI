@@ -1,234 +1,281 @@
-"""
-LLM Worker Daemon for FhirBridgeAI
-===================================
-Consumes events (Claim-Check IDs) from RabbitMQ `llm_task_queue`, fetches OCR text,
-forces the Mistral model to yield structured JSON via Pydantic validation loops,
-and routes the result to the next stage (FHIR-Transformation).
-"""
+"""LLM worker with delegated auth verification, advisory-only Qdrant gating, and manual review."""
+
+from __future__ import annotations
 
 import asyncio
 import json
 import logging
-import os
 import traceback
-from functools import partial
-from typing import Any
 
 import aio_pika
 import aioboto3
-from opentelemetry import context as otel_context
-from opentelemetry.propagate import extract, inject
+from opentelemetry import trace
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from fhirbridge.core.database import Job, JobStatus, get_session_factory, init_db
-from fhirbridge.core.llm import LlmConfig, LlmRetryClient, LlmValidationError
-from fhirbridge.core.rabbitmq import (
-    DocumentMetaData,
-    FhirExportMessage,
-    get_rabbitmq_connection,
-    init_rabbitmq,
+from fhirbridge.core.auth import PolicyAuthError, TokenExchangeService
+from fhirbridge.core.base_worker import BaseRabbitMQWorker
+from fhirbridge.core.config import get_settings
+from fhirbridge.core.database import (
+    JobStatus,
+    ManualReviewStatus,
+    create_security_audit_event_async,
+    get_async_engine,
+    get_async_session_factory,
+    get_or_create_manual_review_case_async,
+    get_or_create_read_model_async,
+    load_job_async,
+    record_consumed_message_async,
+    store_semantic_chunks_async,
+    verify_runtime_schema_async,
 )
-from fhirbridge.core.telemetry import init_tracer
+from fhirbridge.core.failure_handling import PermanentDataError, TransientInfrastructureError
+from fhirbridge.core.llm import LlmConfig, LlmConnectionError, LlmRetryClient, LlmValidationError
+from fhirbridge.core.qdrant_security import advisory_only_gate, enforce_advisory_only_transition
+from fhirbridge.core.rabbitmq import DocumentMetaData, IngestionSourceKind
+from fhirbridge.core.semantic_chunking import split_semantic_chunks
+from fhirbridge.core.storage import HL7_MEDIA_TYPE, PDF_MEDIA_TYPE, build_phi_vault_claim_check, build_processing_claim_check, s3_client_kwargs
 from fhirbridge.models.fhir_models import BundleExtraction
-
-CONFIG: dict[str, Any] = {
-    "DB_PATH": "data/dispatcher.db",
-    "MINIO_URL": os.getenv("MINIO_URL", "http://minio:9000"),
-    "MINIO_ROOT_USER": os.getenv("MINIO_ROOT_USER", "admin"),
-    "MINIO_ROOT_PASSWORD": os.getenv("MINIO_ROOT_PASSWORD", "admin123"),
-    "S3_BUCKET": "ephemeral-payloads",
-}
+from fhirbridge.privacy.pseudonymizer import LocalAnonymizer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [LLM] - %(levelname)s - %(message)s")
-logger = logging.getLogger("LLMWorker")
 
-engine = init_db(str(CONFIG["DB_PATH"]))
-SessionFactory = get_session_factory(engine)
-
-tracer = init_tracer("llm-worker")
+AsyncEngineRef: AsyncEngine | None = None
+AsyncSessionFactory: async_sessionmaker[AsyncSession] | None = None
 
 
-def _update_job_sync(
-    job_id: int, status: JobStatus, fhir_json: str | None = None, error_trace: str | None = None
-) -> None:
-    """Synchronous DB operation to update job state, meant to be run in a thread pool."""
-    with SessionFactory() as session:
-        job = session.query(Job).filter_by(id=job_id).first()
-        if job:
+def _get_database() -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
+    global AsyncEngineRef, AsyncSessionFactory
+
+    if AsyncEngineRef is None:
+        AsyncEngineRef = get_async_engine()
+    if AsyncSessionFactory is None:
+        AsyncSessionFactory = get_async_session_factory(AsyncEngineRef)
+    return AsyncEngineRef, AsyncSessionFactory
+
+
+async def _persist_terminal_state(job_id: int, status: JobStatus, error_trace: str) -> None:
+    _, session_factory = _get_database()
+    async with session_factory() as session:
+        async with session.begin():
+            job = await load_job_async(session, job_id=job_id)
+            if not job:
+                return
             job.status = status
-            if fhir_json is not None:
-                job.fhir_json = fhir_json
-            if error_trace is not None:
-                job.error_trace = error_trace
-            session.commit()
+            job.aggregate_version += 1
+            job.required_read_version = job.aggregate_version
+            job.error_trace = error_trace
+            projection = await get_or_create_read_model_async(session, job_id=int(job.id))
+            projection.required_version = int(job.aggregate_version)
+            projection.visible_version = int(job.aggregate_version)
+            projection.status = str(job.status.value)
 
 
-async def process_llm_message(
-    message: aio_pika.abc.AbstractIncomingMessage,
-    channel: aio_pika.abc.AbstractChannel,
-    dlq_exchange: aio_pika.abc.AbstractExchange,
-) -> None:
-    """
-    RabbitMQ Consumer Callback for LLM Tasks.
-    """
-    headers = message.headers or {}
-    ctx = extract(headers)
+class LlmWorker(BaseRabbitMQWorker):
+    def __init__(self) -> None:
+        super().__init__("llm-worker", "llm_extraction_queue", prefetch_count=1)
+        self.session_s3 = aioboto3.Session()
+        self.anonymizer = LocalAnonymizer()
 
-    token = otel_context.attach(ctx)
-    try:
-        with tracer.start_as_current_span("process_llm_message", context=ctx) as span:
+    async def setup(self) -> None:
+        settings = get_settings()
+        settings.require_database_url()
+        settings.require_rabbitmq_url()
+        settings.require_internal_auth_context_secret()
+        settings.require_minio_credentials()
+        settings.require_minio_url()
+        settings.minio_http_verify()
+        settings.object_storage_buckets()
+
+        engine, _ = _get_database()
+        await verify_runtime_schema_async(engine)
+
+    async def process_message(self, message: aio_pika.abc.AbstractIncomingMessage) -> None:
+        task = DocumentMetaData.model_validate_json(message.body)
+        span = trace.get_current_span()
+        span.set_attribute("job_id", task.job_id)
+        span.set_attribute("tenant_scope", task.tenant_scope)
+        span.set_attribute("source_kind", task.source_kind.value)
+
+        token_exchange = TokenExchangeService.from_settings()
+        internal_context = token_exchange.verify(
+            task.auth_context,
+            expected_tenant_scope=task.tenant_scope,
+            expected_event_id=task.event_id,
+        )
+
+        self.logger.info(
+            "Start LLM processing for job=%s tenant=%s source_kind=%s",
+            task.job_id,
+            task.tenant_scope,
+            task.source_kind.value,
+        )
+
+        if task.source_kind == IngestionSourceKind.PDF_SCAN and task.document.media_type == PDF_MEDIA_TYPE:
+            raise PolicyAuthError("PDF scan arrived at LLM without OCR stage handoff")
+
+        try:
+            async with self.session_s3.client("s3", **s3_client_kwargs()) as s3:
+                response = await s3.get_object(Bucket=task.document.bucket, Key=task.document.object_key)
+                async with response["Body"] as stream:
+                    source_text = (await stream.read()).decode("utf-8")
+        except Exception as exc:
+            raise TransientInfrastructureError(f"S3 fetch failed for job {task.job_id}") from exc
+
+        processing_ref = task.document
+        mapping_ref = None
+        cleanup_refs: list[tuple[str, str]] = []
+        llm_input_text = source_text
+        if task.source_kind == IngestionSourceKind.HL7_V2:
+            anonymized = self.anonymizer.anonymize(source_text)
+            llm_input_text = anonymized.anonymized_text
+            processing_ref = build_processing_claim_check(job_id=task.job_id, source_kind=task.source_kind)
+            mapping_ref = build_phi_vault_claim_check(job_id=task.job_id)
             try:
-                task = DocumentMetaData.model_validate_json(message.body)
-                span.set_attribute("job_id", task.job_id)
-                span.set_attribute("s3_object_key", task.s3_object_key or "")
-
-                logger.info(
-                    f"Starte LLM Verarbeitung von Job #{task.job_id}: {os.path.basename(task.filepath)}"
-                )
-
-                # Mark state (non-blocking)
-                await asyncio.to_thread(_update_job_sync, task.job_id, JobStatus.LLM_EXTRACTION)
-
-                if not getattr(task, "s3_object_key", None):
-                    raise ValueError("Kein valider s3_object_key (Claim-Check) vorhanden.")
-
-                # Async fetch from MinIO/S3
-                session = aioboto3.Session()
-                async with session.client(
-                    "s3",
-                    endpoint_url=CONFIG["MINIO_URL"],
-                    aws_access_key_id=CONFIG["MINIO_ROOT_USER"],
-                    aws_secret_access_key=CONFIG["MINIO_ROOT_PASSWORD"],
-                ) as s3:
-                    response = await s3.get_object(Bucket=CONFIG["S3_BUCKET"], Key=task.s3_object_key)
-                    async with response["Body"] as stream:
-                        ocr_text = (await stream.read()).decode("utf-8")
-
-                logger.info(
-                    f"  -> Extrahieren der klinischen Parameter via lokaler GPU (Job #{task.job_id})."
-                )
-
-                # Initialize self-healing LLM Client (Arch-Rule #2: max_retries=3)
-                config = LlmConfig(
-                    max_retries=3,
-                    temperature=0.1,  # Low temp for deterministic extraction
-                    max_tokens=4096,
-                )
-                client = LlmRetryClient(config)
-
-                system_context = (
-                    "Du bist ein medizinischer Dokumentations-Assistent. "
-                    "Extrahiere die klinischen Daten in das vorgegebene JSON Schema."
-                )
-                prompt = (
-                    "Aufgabe: Analysiere den folgenden Krankenhaus-Bericht und generiere "
-                    "exakt EIN JSON Objekt mit allen gefundenen Werten. Erfinde keine Daten.\n\n"
-                    f"--- OCR TEXT ---\n{ocr_text}\n--- ENDE OCR TEXT ---"
-                )
-
-                try:
-                    # Client hands ValidationError back to LLM automatically
-                    bundle = await client.generate_structured(
-                        prompt=prompt,
-                        schema=BundleExtraction,
-                        system_context=system_context,
+                async with self.session_s3.client("s3", **s3_client_kwargs()) as s3:
+                    await s3.put_object(
+                        Bucket=processing_ref.bucket,
+                        Key=processing_ref.object_key,
+                        Body=llm_input_text.encode("utf-8"),
                     )
-
-                    fhir_bundle_dict = json.loads(bundle.model_dump_json(exclude_none=True))
-                    json_str = json.dumps(fhir_bundle_dict, indent=2, ensure_ascii=False)
-
-                    # Persist Claim-Check Payload (non-blocking)
-                    await asyncio.to_thread(
-                        _update_job_sync, task.job_id, JobStatus.FHIR_GENERATED, fhir_json=json_str
+                    await s3.put_object(
+                        Bucket=mapping_ref.bucket,
+                        Key=mapping_ref.object_key,
+                        Body=json.dumps(anonymized.mapping, sort_keys=True).encode("utf-8"),
                     )
+                cleanup_refs = [
+                    (processing_ref.bucket, processing_ref.object_key),
+                    (mapping_ref.bucket, mapping_ref.object_key),
+                ]
+            except Exception as exc:
+                raise TransientInfrastructureError("Failed to persist HL7 processing artifacts") from exc
 
-                    # Route to next pipeline stage (FHIR-Transformation)
-                    export_msg = FhirExportMessage(job_id=task.job_id, bundle_json=json_str)
+        config = LlmConfig(max_retries=3, temperature=0.1, max_tokens=4096)
+        client = LlmRetryClient(config)
 
-                    out_headers = {}
-                    inject(out_headers)
-
-                    await channel.default_exchange.publish(
-                        aio_pika.Message(
-                            body=export_msg.model_dump_json().encode("utf-8"),
-                            content_type="application/json",
-                            headers=out_headers,
-                            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                        ),
-                        routing_key="fhir_export_queue",
-                    )
-
-                    await message.ack()
-                    logger.info(f"  ✓ LLM Job #{task.job_id} beendet. Routing zur FHIR-Transformation ok.")
-
-                except LlmValidationError as e:
-                    # Arch-Rule #3: Final Retry fails -> Manual DLQ Publish and explicit reject
-                    logger.error(
-                        f"  ✗ LLM Validation Error für Job #{task.job_id} (retries exhausted): {e}"
-                    )
-
-                    await dlq_exchange.publish(
-                        aio_pika.Message(
-                            body=message.body,
-                            headers={
-                                "x-error-type": "LlmValidationError",
-                                "x-validation-errors": str(e.validation_errors),
-                                "x-last-raw-output": str(e.last_raw_output)[:2000],
-                            },
-                        ),
-                        routing_key="",
-                    )
-                    await message.reject(requeue=False)
-                    logger.info(
-                        f"  -> Job #{task.job_id} wurde in llm_dlq verschoben und Message rejected."
-                    )
-
-                    await message.reject(requeue=False)
-
-            except Exception as e:
-                error_trace = traceback.format_exc()
-                logger.error(f"  ✗ Unbehandelter Fehler! {type(e).__name__}: {e}")
-
-                # Generic error handling sets DB and natively dead-letters (requeue=False)
-                try:
-                    task = DocumentMetaData.model_validate_json(message.body)
-                    await asyncio.to_thread(
-                        _update_job_sync, task.job_id, JobStatus.FAILED, error_trace=error_trace
-                    )
-                except Exception:
-                    pass
-
-                await message.reject(requeue=False)
-    finally:
-        otel_context.detach(token)
-
-
-async def run_worker() -> None:
-    async with get_rabbitmq_connection() as connection:
-        channel, queues = await init_rabbitmq(connection)
-        llm_queue = queues["llm_queue"]
-
-        # Arch-Rule #1: STRIKT auf prefetch_count=1 konfigurieren für VRAM Protection
-        await channel.set_qos(prefetch_count=1)
-
-        # Arch-Rule #3: Designierter llm_dlq Exchange (Fanout for DLQ logic)
-        dlq_exchange = await channel.declare_exchange(
-            "llm_dlq", aio_pika.ExchangeType.FANOUT, durable=True
+        system_context = (
+            "Du bist ein medizinischer Dokumentations-Assistent. "
+            "Extrahiere die klinischen Daten in das vorgegebene JSON Schema."
+        )
+        prompt = (
+            "Aufgabe: Analysiere den folgenden Krankenhaus-Bericht und generiere "
+            "exakt EIN JSON Objekt mit allen gefundenen Werten. Erfinde keine Daten.\n\n"
+            f"--- SOURCE TEXT ---\n{llm_input_text}\n--- ENDE SOURCE TEXT ---"
         )
 
-        logger.info("=======================================")
-        logger.info("🧠 LLM Worker Active (AsyncIO & prefetch=1, No Semaphore)")
-        logger.info("=======================================")
+        try:
+            bundle = await client.generate_structured(
+                prompt=prompt,
+                schema=BundleExtraction,
+                system_context=system_context,
+            )
+        except LlmValidationError as exc:
+            await _persist_terminal_state(
+                task.job_id,
+                JobStatus.QUARANTINED,
+                traceback.format_exc(),
+            )
+            raise PermanentDataError("Structured extraction failed validation") from exc
+        except LlmConnectionError as exc:
+            raise TransientInfrastructureError("Local LLM endpoint is temporarily unavailable") from exc
 
-        callback = partial(
-            process_llm_message,
-            channel=channel,
-            dlq_exchange=dlq_exchange,
+        fhir_bundle_dict = json.loads(bundle.model_dump_json(exclude_none=True))
+        json_str = json.dumps(fhir_bundle_dict, indent=2, ensure_ascii=False)
+        semantic_chunks = split_semantic_chunks(
+            text=llm_input_text,
+            tenant_scope=task.tenant_scope,
+            document_version=task.aggregate_version,
+            aggregate_version=task.aggregate_version,
         )
-        # Consume incoming inference requests
-        await llm_queue.consume(callback)
+        advisory_gate = advisory_only_gate()
+        manual_review_required = bool(task.review_required or advisory_gate.manual_review_required)
+        enforce_advisory_only_transition(
+            gate=advisory_gate,
+            attempted_straight_through=not manual_review_required,
+        )
 
-        await asyncio.Future()
+        _, session_factory = _get_database()
+        try:
+            async with session_factory() as session:
+                async with session.begin():
+                    job = await load_job_async(session, job_id=task.job_id)
+                    if not job:
+                        raise PermanentDataError(f"Unknown job_id {task.job_id}")
+                    if not await record_consumed_message_async(
+                        session,
+                        consumer_name=self.worker_name,
+                        event_id=task.event_id,
+                    ):
+                        return
+
+                    if processing_ref is not None:
+                        job.processing_bucket = processing_ref.bucket
+                        job.processing_object_key = processing_ref.object_key
+                        job.processing_media_type = processing_ref.media_type
+                    if mapping_ref is not None:
+                        job.mapping_bucket = mapping_ref.bucket
+                        job.mapping_object_key = mapping_ref.object_key
+
+                    job.fhir_json = json_str
+                    job.status = JobStatus.REVIEW_PENDING
+                    job.aggregate_version += 1
+                    job.required_read_version = job.aggregate_version
+
+                    projection = await get_or_create_read_model_async(session, job_id=int(job.id))
+                    projection.required_version = int(job.aggregate_version)
+                    projection.visible_version = int(job.aggregate_version)
+                    projection.status = str(job.status.value)
+
+                    await store_semantic_chunks_async(
+                        session,
+                        job_id=int(job.id),
+                        chunks=semantic_chunks,
+                    )
+
+                    review_case = await get_or_create_manual_review_case_async(
+                        session,
+                        job_id=int(job.id),
+                        tenant_scope=task.tenant_scope,
+                        reason_code=f"{task.source_kind.value}_MANUAL_REVIEW_REQUIRED",
+                    )
+                    review_case.status = ManualReviewStatus.PENDING
+                    review_case.decision_notes = None
+                    review_case.reviewer_actor_id = None
+                    review_case.reviewer_authz_decision_id = None
+                    review_case.reviewed_at = None
+
+                    await create_security_audit_event_async(
+                        session,
+                        job_id=int(job.id),
+                        tenant_scope=task.tenant_scope,
+                        actor_id=internal_context.actor_id,
+                        event_type="manual_review_requested",
+                        severity="HIGH",
+                        authz_decision_id=internal_context.authz_decision_id,
+                        details={
+                            "source_kind": task.source_kind.value,
+                            "qdrant_advisory_only": advisory_gate.advisory_only,
+                            "blocking_adr": advisory_gate.blocking_adr,
+                        },
+                    )
+        except PolicyAuthError as exc:
+            await _persist_terminal_state(
+                task.job_id,
+                JobStatus.SECURITY_REJECTED,
+                traceback.format_exc(),
+            )
+            raise exc
+        except PermanentDataError:
+            raise
+        except Exception as exc:
+            if cleanup_refs:
+                async with self.session_s3.client("s3", **s3_client_kwargs()) as s3:
+                    for bucket, object_key in cleanup_refs:
+                        await s3.delete_object(Bucket=bucket, Key=object_key)
+            raise TransientInfrastructureError("Failed to persist LLM review state") from exc
+
+        self.logger.info("LLM processing complete for job=%s", task.job_id)
 
 
 if __name__ == "__main__":
-    asyncio.run(run_worker())
+    worker = LlmWorker()
+    asyncio.run(worker.run())
