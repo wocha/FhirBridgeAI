@@ -30,7 +30,7 @@ A dedicated Python worker (e.g., `document_splitter.py`) consumes the stream of 
 - The `patient_identifier` changes.
 - The `document_type_hint` changes significantly (e.g., from "Labor" to "Sturzprotokoll").
 - Explicit page numbering indicates a reset (e.g., finding "Seite 1/X").
-**Output:** The large PDF is spliced into N logical, single-document PDFs. These are pushed into the RabbitMQ/SQLite queue as `PENDING` jobs.
+**Output:** The large PDF is spliced into N logical, single-document PDFs. These are handed to the authenticated ingestion boundary and the canonical RabbitMQ/outbox pipeline as `PENDING` jobs.
 
 ### 3. Stage: KDL Classification & Strict Extraction
 

@@ -47,4 +47,4 @@ Der zentrale S3 / MinIO Container wird über folgende Variablen angesprochen:
 
 * `MINIO_URL` (Fallback: `http://localhost:9000`)
 * `MINIO_ROOT_USER` (Fallback: `admin`)
-* `MINIO_ROOT_PASSWORD` (Fallback: `admin123`)
+* `MINIO_ROOT_PASSWORD` (Required: explicit non-default secret)

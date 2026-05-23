@@ -1,30 +1,29 @@
 ---
 name: building-autonomous-dispatchers
-description: Sets the architectural standard for the backend background batch processor. Enforces the use of persistent, stateful queues (e.g., SQLite-backed FIFO) to ensure the local Mistral model is never overloaded and interrupted tasks can resume.
+description: Defines the hardened PostgreSQL-and-RabbitMQ dispatcher standard for background processing. Legacy standalone prototypes in `scripts/` are retired and not approved for runtime use.
 ---
 
 # Autonomous Dispatcher Architect
 
-You are the Lead Systems Architect for FhirBridgeAI. Your objective is to design the "Phase 4" Autonomous Dispatcher—a highly resilient background service that processes thousands of medical files (HL7/PDF) through heavy GPU pipelines without crashing or losing state.
+You are the Lead Systems Architect for FhirBridgeAI. Your objective is to keep long-running background processing deterministic, auditable, and horizontally safe under KRITIS enterprise constraints.
 
-## Core Architecture Principles
+## Approved Architecture Standard
 
-1. **Never Starve the Queue, Never Flood the GPU**: A 12B Mistral model processing heavy OCR data localy cannot scale horizontally easily. The dispatcher must strictly feed jobs to the LLM one-by-one or in very small batches based on available VRAM.
-2. **State Context is King**: 100% of jobs must be logged to a durable database (e.g., SQLite via SQLAlchemy) with states like `PENDING`, `OCR_PROCESSING`, `LLM_EXTRACTION`, `FHIR_GENERATED`, and `ERROR`.
-3. **Idempotence & Recovery**: If the Python script crashes halfway through evaluating 10,000 Synthea files, it must resume exactly where it left off upon restart.
+1. **PostgreSQL Only**: Durable state lives in PostgreSQL behind controlled migrations. Runtime code must not use local file-backed databases or ad-hoc schema bootstrap.
+2. **RabbitMQ plus Transactional Outbox**: Business stages persist state and outbox events atomically; only the dedicated dispatcher publishes to RabbitMQ.
+3. **Async Runtime Safety**: Active request and worker paths use async database access and must not block the event loop with synchronous persistence.
+4. **Deterministic Failure Handling**: Exceptions must surface with telemetry, reconciliation, or DLQ visibility. Ambiguous publish outcomes must be escalated, not silently retried.
+5. **No Runtime Shortcuts**: No runtime DDL bootstrap, no direct broker publishes from business stages, no default credentials, and no local worker file outputs in scalable paths.
 
-## Workflow: Scaffolding the Dispatcher
+## Use These Canonical Assets
 
-1. **State Management**:
-    - Build a database schema natively in Python (e.g., `sqlite3` or `SQLAlchemy`) showing Jobs, Status, FilePath, ErrorMessage, and Timestamps.
-2. **Directory Watcher (Polling vs Events)**:
-    - Use robust file system monitoring (like `watchdog`) or simple polling combined with atomicity (e.g., moving files to a `.processing/` folder).
-3. **The Worker Loop**:
-    - Scaffold a `while True:` loop or a specialized worker setup (like Celery, RQ, or a custom `asyncio.Queue` worker pool) that picks up `PENDING` items.
-4. **Audit Logging**:
-    - Ensure every file processed logs out both success results and explicit stack traces on failure to a dedicated audit logging structure (critical for the target KRITIS environment).
+- `src/fhirbridge/core/database.py`
+- `src/fhirbridge/core/migrations.py`
+- `src/fhirbridge/core/outbox_dispatcher.py`
+- `src/fhirbridge/workers/ocr_worker.py`
+- `src/fhirbridge/workers/llm_worker.py`
+- `src/fhirbridge/workers/fhir_export_worker.py`
 
-## Avoid Common Pitfalls
+## Retired Prototypes
 
-- **Do not use in-memory arrays** (`tasks = []`) for tracking background workloads—if the script exits, the data is lost.
-- **Do not let threads compete for the Ollama API** blindly. Explicitly throttle concurrent hits to `127.0.0.1:11434` to prevent OOM errors on the 9070 XT.
+The standalone reference scripts in `scripts/db_worker.py` and `scripts/mq_worker.py` are retained only as blocked historical stubs. They are not approved for runtime use, scaffolding, or copy-forward implementation.

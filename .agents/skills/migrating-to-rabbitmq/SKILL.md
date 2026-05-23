@@ -1,13 +1,13 @@
 ---
 name: migrating-to-rabbitmq
-description: Guides the agent to migrate from SQLite-backed queues to a horizontally scalable RabbitMQ architecture, utilizing At-Least-Once Delivery and Dead-Letter-Exchange (DLX).
+description: Guides the agent to migrate from legacy local queue patterns to a horizontally scalable RabbitMQ architecture, utilizing At-Least-Once Delivery and Dead-Letter-Exchange (DLX).
 ---
 
 # Migrating to RabbitMQ (Tier 8 Enterprise Architecture)
 
 ## Context
 
-Our project originally utilized SQLite for the job queue (`background_jobs` table) in `db_worker.py`. However, SQLite cannot handle high-throughput concurrent writes and locks gracefully when scaling horizontally across multiple worker nodes. Therefore, we migrated the messaging layer to RabbitMQ.
+Our project originally utilized a legacy local job queue (`background_jobs` table) in `db_worker.py`. That pattern cannot satisfy the horizontal-scaling and recovery requirements of the hardened runtime, so the messaging layer is migrated to RabbitMQ.
 
 ## Canonical Implementations
 
