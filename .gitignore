@@ -1,5 +1,6 @@
 # Python and environments
 __pycache__/
+*.pyc
 *.py[cod]
 *$py.class
 *.so
@@ -30,6 +31,10 @@ ENV/
 !.env.example
 .aider.conf.yml
 certs/
+keys.txt
+*secrets*
+!*secrets*.example
+!*secrets*.template
 
 # IDEs and Editors
 .vscode/
