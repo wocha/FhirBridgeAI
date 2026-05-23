@@ -12,7 +12,7 @@ Dieses Runbook kombiniert:
 - Ohne Bearer-Token: `/ingest/text` liefert `401 Not authenticated`
 
 ## 3) Preflight
-```powershell
+```bash
 docker compose ps
 ```
 Erwartung: `ingestion-gateway`, `rabbitmq`, `postgres`, `minio`, `llm-worker`, `ocr-worker`, `fhir-export-worker`, `jaeger`, `prometheus`, `grafana` sind `Up`.
@@ -20,72 +20,75 @@ Erwartung: `ingestion-gateway`, `rabbitmq`, `postgres`, `minio`, `llm-worker`, `
 ## 4) Token fuer klinische Rolle holen
 Hinweis: Endpoint verlangt Bearer JWT mit klinischer Rolle (`PHYSICIAN`, `NURSE` oder `EMERGENCY`).
 
-```powershell
-$KeycloakUrl = "http://localhost:8080"   # falls lokal exposed; sonst via docker exec
-$Realm = "fhirbridge"
-$ClientId = "fhirbridge-api"
-$Username = "<clinical_user>"
-$Password = "<clinical_password>"
+```bash
+KEYCLOAK_URL="http://localhost:8080"   # falls lokal exposed; sonst via docker exec
+REALM="fhirbridge"
+CLIENT_ID="fhirbridge-api"
+USERNAME="<clinical_user>"
+PASSWORD="<clinical_password>"
 
 # Variante A: lokal (wenn Keycloak-Port erreichbar)
-$tokenResp = curl.exe -sS -X POST "$KeycloakUrl/realms/$Realm/protocol/openid-connect/token" `
-  -H "Content-Type: application/x-www-form-urlencoded" `
-  -d "grant_type=password&client_id=$ClientId&username=$Username&password=$Password"
-$AccessToken = ($tokenResp | ConvertFrom-Json).access_token
+token_resp="$(curl -sS -X POST "$KEYCLOAK_URL/realms/$REALM/protocol/openid-connect/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=password" \
+  --data-urlencode "client_id=$CLIENT_ID" \
+  --data-urlencode "username=$USERNAME" \
+  --data-urlencode "password=$PASSWORD")"
+ACCESS_TOKEN="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])' <<<"$token_resp")"
 
 # Variante B: im Keycloak-Container
 # docker exec fhirbridge_keycloak sh -lc "curl -sS -X POST http://localhost:8080/realms/fhirbridge/protocol/openid-connect/token -H 'Content-Type: application/x-www-form-urlencoded' -d 'grant_type=password&client_id=fhirbridge-api&username=<clinical_user>&password=<clinical_password>'"
 ```
 
 ## 5) Positivtest: Text-Ingestion
-```powershell
-curl.exe -k -X POST "https://ingest.docker.localhost/ingest/text" `
-  -H "Authorization: Bearer $AccessToken" `
-  -H "Content-Type: text/plain" `
+```bash
+curl -k -X POST "https://ingest.docker.localhost/ingest/text" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Content-Type: text/plain" \
   --data "Patient Max Mustermann, station A2, V.a. Pneumonie"
 ```
 Erwartung: `202 Accepted` + `document_id`.
 
 ## 6) Positivtest: PDF-Ingestion
-```powershell
-curl.exe -k -X POST "https://ingest.docker.localhost/ingest/pdf" `
-  -H "Authorization: Bearer $AccessToken" `
-  -H "Content-Type: application/pdf" `
-  --data-binary "@C:\path\to\sample.pdf"
+```bash
+curl -k -X POST "https://ingest.docker.localhost/ingest/pdf" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Content-Type: application/pdf" \
+  --data-binary "@/path/to/sample.pdf"
 ```
 Erwartung: `202 Accepted` + `document_id`.
 
 ## 7) Negativtests (Fail-Closed)
 ### 7.1 Ohne Token
-```powershell
-curl.exe -k -i -X POST "https://ingest.docker.localhost/ingest/text" -H "Content-Type: text/plain" --data "test"
+```bash
+curl -k -i -X POST "https://ingest.docker.localhost/ingest/text" -H "Content-Type: text/plain" --data "test"
 ```
 Erwartung: `401`.
 
 ### 7.2 Falscher Content-Type auf PDF Route
-```powershell
-curl.exe -k -i -X POST "https://ingest.docker.localhost/ingest/pdf" `
-  -H "Authorization: Bearer $AccessToken" `
-  -H "Content-Type: text/plain" `
+```bash
+curl -k -i -X POST "https://ingest.docker.localhost/ingest/pdf" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Content-Type: text/plain" \
   --data "not a pdf"
 ```
 Erwartung: `415`.
 
 ## 8) Datenfluss-Checks nach erfolgreichem Request
 ### 8.1 RabbitMQ Queue Activity
-```powershell
+```bash
 docker exec fhirbridge_rabbitmq rabbitmqctl list_queues name messages messages_ready messages_unacknowledged
 ```
 Erwartung: OCR/Text Queue Traffic sichtbar, keine stetig waachsenden Backlogs.
 
 ### 8.2 MinIO Claim-Check
-```powershell
+```bash
 docker exec fhirbridge_minio sh -lc "mc alias set local http://localhost:9000 admin admin123 >/dev/null 2>&1; mc ls local/ephemeral-payloads --recursive"
 ```
 Erwartung: Nur Object Keys, keine PHI im Queue Payload.
 
 ### 8.3 PHI-safe Logging Stichprobe
-```powershell
+```bash
 docker logs --since 5m fhirbridge_ingestion
 docker logs --since 5m fhirbridge_ocr_worker
 docker logs --since 5m fhirbridge_llm_worker
