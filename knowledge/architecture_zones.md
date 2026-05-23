@@ -12,7 +12,7 @@ Central lookup for the 7 Architecture Zones defined in our Enterprise Non-Functi
 | `Z4` | Resilience | Strategies and patterns for fault tolerance, retries, idempotency, and state recovery. | Circuit Breakers, Retry Loops, Idempotent APIs |
 | `Z5` | Observability | Distributed tracing, logging, metrics, and monitoring of system health. | OpenTelemetry, Prometheus, Trace-IDs |
 | `Z6` | Domain | The core business logic, medical extraction models, FHIR mapping, and orchestrators. | Local LLMs (Mistral), Synthea Generators, KDL Parsers |
-| `Z7` | Infrastructure | Underlying storage, vector engines, databases, and compute nodes. | Qdrant, PostgreSQL, SQLite, MinIO (S3) |
+| `Z7` | Infrastructure | Underlying storage, vector engines, databases, and compute nodes. | Qdrant, PostgreSQL, MinIO (S3) |
 
 ## Usage
 

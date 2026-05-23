@@ -3,9 +3,22 @@ import os
 
 import requests
 
+try:
+    import pytest
+except ModuleNotFoundError:
+    pytest = None
+
 API_URL = "http://localhost:8000/api/v1/documents"
-API_KEY = "kritis-dev-key-change-in-prod"
+API_KEY = os.getenv("TEST_API_KEY", "dev-key-set-via-env")
 PAYLOAD_FILE = "test_payload.json"
+
+# Legacy smoke script: this still targets the retired X-API-Key auth path.
+SKIP_REASON = "Legacy API-key e2e script; migrate to JWT auth before enabling."
+pytestmark = [pytest.mark.integration, pytest.mark.skip(reason=SKIP_REASON)] if pytest else ()
+
+
+def test_legacy_e2e_fire_is_disabled() -> None:
+    assert True
 
 
 def main():

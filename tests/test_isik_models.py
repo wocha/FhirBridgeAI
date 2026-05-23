@@ -4,6 +4,8 @@ from pydantic import ValidationError
 from fhirbridge.models.clinical_base import SYSTEM_KVNR_GKV, ISiKObservation
 from fhirbridge.models.fhir_models import Encounter, Patient
 
+pytestmark = pytest.mark.smoke
+
 
 def test_patient_valid_kvnr():
     patient_data = {

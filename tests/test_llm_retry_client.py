@@ -4,8 +4,8 @@ Unit tests for the canonical LLM Retry Client.
 All Ollama HTTP calls are mocked — no running Ollama instance required.
 
 Run:
-    cd c:\\Projects\\FhirBridgeAi
-    .venv\\Scripts\\python.exe -m pytest tests/test_llm_retry_client.py -v
+    cd <project-root>
+    python3 -m pytest tests/test_llm_retry_client.py -v
 """
 
 from __future__ import annotations

@@ -31,7 +31,7 @@ flowchart TD
         end
 
         subgraph Storage
-            DB[(PostgreSQL / SQLite State DB)]
+    DB[(PostgreSQL State DB)]
             FHIR_Store[(FHIR Repository<br>HAPI/SmileCDR)]
         end
     end

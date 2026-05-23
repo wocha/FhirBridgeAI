@@ -9,7 +9,7 @@ Accepted
 The FhirBridgeAI system processes highly sensitive medical documents, including discharge summaries, lab results, and diagnostic imaging texts. The goal is to perform sophisticated NLP tasks like OCR validation, medical entity extraction, and transformation of unstructured text into structured FHIR constraints.
 A key architectural decision is whether to utilize managed Cloud APIs (e.g., OpenAI's GPT-4, Google Cloud Vertex AI) or host inference via localized Large Language Models (LLMs) (e.g., Mistral-NeMo, Llama 3) via an orchestration framework like Ollama.
 
-The primary operational constraint stems from deploying in a KRITIS (Kritische Infrastruktur - Critical Infrastructure) environment, typical in German healthcare (e.g., Wocharienklinikum). Such environments mandate stringent data sovereignty and GDPR compliance restrictions, strictly limiting or forbidding the transmission of Protected Health Information (PHI) to external, third-party cloud infrastructure.
+The primary operational constraint stems from deploying in a KRITIS (Kritische Infrastruktur - Critical Infrastructure) environment, typical in German healthcare (e.g., a regional demo clinic). Such environments mandate stringent data sovereignty and GDPR compliance restrictions, strictly limiting or forbidding the transmission of Protected Health Information (PHI) to external, third-party cloud infrastructure.
 
 ## Decision
 

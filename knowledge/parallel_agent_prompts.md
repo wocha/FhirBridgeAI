@@ -31,7 +31,7 @@ Du kannst die folgenden Prompts an den obigen "Best Practice" Block anhängen, u
 Aufgabe für diese Sitzung: Refactoring des Document Dispatchers auf RabbitMQ.
 Lies dir zuerst `src/fhirbridge/workers/dispatcher.py` durch.
 Deine Ziele:
-1. Ersetze die aktuelle SQLite-basierte Queue durch `aio-pika` zur asynchronen Anbindung an RabbitMQ.
+1. Ersetze jede verbleibende Legacy-Queue durch `aio-pika` zur asynchronen Anbindung an RabbitMQ.
 2. Entwirf eine saubere Consumer-Klasse, die Idempotenz sicherstellt (Nachrichten werden exactly-once verarbeitet).
 3. Implementiere robustes Error-Handling (Exponential Backoff mit der Bibliothek `tenacity`), falls das lokale LLM oder die PDF-Engine blockieren.
 Bitte erstelle zunächst einen Plan (implementation_plan.md) und zeige mir, wie du den Pika-Consumer strukturieren willst.

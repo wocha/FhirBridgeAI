@@ -2,8 +2,8 @@
 Tests für die ISiK-konformen FHIR Pydantic-Modelle.
 
 Ausführung:
-    cd c:\\Projects\\FhirBridgeAi
-    .venv\\Scripts\\python.exe -m pytest scripts/test_fhir_models.py -v
+    cd <project-root>
+    python3 -m pytest tests/test_fhir_models.py -v
 """
 
 import json
@@ -21,6 +21,8 @@ from fhirbridge.models.fhir_models import (
     Patient,
     Reference,
 )
+
+pytestmark = pytest.mark.smoke
 
 # -------------------------------------------------------------------------
 # Fixtures

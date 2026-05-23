@@ -7,7 +7,7 @@ This led to severe clutter in the codebase, posing a risk that generated or corr
 
 ## Architectural Rule
 
-1. **NO Temporary Files in Project Root:** You are forbidden from writing any generated temporary files (e.g., intermediate images, test texts, logs) directly to `c:\Projects\FhirBridgeAi` or any source folder.
+1. **NO Temporary Files in Project Root:** You are forbidden from writing any generated temporary files (e.g., intermediate images, test texts, logs) directly to `<project-root>` or any source folder.
 2. **Use the `tempfile` Standard Library:** When creating temporary assets needed only for the duration of a process (e.g., generating a barcode image to embed in a PDF), you MUST use Python's built-in `tempfile` module.
     - Prefer `tempfile.TemporaryDirectory()` when multiple files are needed.
     - Prefer `tempfile.NamedTemporaryFile()` for single files.
