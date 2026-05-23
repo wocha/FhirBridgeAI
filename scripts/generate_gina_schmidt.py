@@ -457,7 +457,7 @@ def degrade_pdf_to_scan(clean_pdf, dirty_pdf):
 
 def main():
     base_dir = Path("data/inbound")
-    p_name = "Gina Lisa"
+    p_name = "Gina Schmidt"
     p_id = "G123456789"
     print(f"\n--- Generating {p_name} ({p_id}) ---")
 

@@ -74,9 +74,9 @@ from unittest.mock import AsyncMock  # noqa: E402
 @pytest.mark.asyncio
 @patch("llm_retry_client.httpx.AsyncClient")
 async def test_llm_client_interceptor(mock_client_cls):
-    # Determine what pseudos will be generated for "Klaus Wowereit" and "Berlin"
+    # Determine what pseudos will be generated for "Karl Weber" and "Berlin"
     scrubber = PiiScrubber(seed=999)
-    pseudo_name = scrubber._register_mapping("Klaus Wowereit", scrubber.faker.name)
+    pseudo_name = scrubber._register_mapping("Karl Weber", scrubber.faker.name)
     pseudo_city = scrubber._register_mapping("Berlin", scrubber.faker.city)
 
     mock_client = AsyncMock()
@@ -94,7 +94,7 @@ async def test_llm_client_interceptor(mock_client_cls):
 
     client = LlmClient()
     prompt = "Extrahiere Name und Stadt."
-    context = "Der Patient heisst Klaus Wowereit aus Berlin."
+    context = "Der Patient heisst Karl Weber aus Berlin."
 
     with patch("fhirbridge.core.llm_client.PiiScrubber") as mock_scrubber_cls:
         mock_scrubber_cls.return_value = scrubber
@@ -111,11 +111,11 @@ async def test_llm_client_interceptor(mock_client_cls):
     call_args = mock_client.post.call_args[1]
     system_instruction = call_args["json"]["prompt"]
 
-    assert "Klaus Wowereit" not in system_instruction
+    assert "Karl Weber" not in system_instruction
     assert "Berlin" not in system_instruction
     assert pseudo_name in system_instruction
     assert pseudo_city in system_instruction
 
     # Check that the final result is unscrubbed
-    assert result.extracted_name == "Klaus Wowereit"
+    assert result.extracted_name == "Karl Weber"
     assert result.extracted_city == "Berlin"
