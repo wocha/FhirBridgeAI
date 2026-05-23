@@ -1,4 +1,4 @@
-# ADR-006: Strict S3 Claim-Check Pattern and Anti-Schema-Evasion
+# ADR-031: Strict S3 Claim-Check Pattern and Anti-Schema-Evasion
 
 ## Status
 
@@ -29,3 +29,7 @@ We enforce the following Tier-1 architectural standards:
 
 - **Positive**: Complete horizontal scalability and statelessness for all workers. NFR #5 (Design by Contract) is mathematically guaranteed. We ensure that no invalid or hallucinated structures ever reach the downstream FHIR servers.
 - **Negative**: Increased storage dependency (MinIO must be highly available). Tests will fail more frequently if the LLM hallucinates, requiring better prompt engineering or fine-tuning, rather than pipeline hacks.
+
+## History
+
+Renumbered to resolve duplicate numbering. The original duplicate number is preserved by the Principal Architect Review ADR.

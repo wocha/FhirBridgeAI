@@ -5,7 +5,7 @@ Local NLP (spaCy) + Regex-based anonymization of Protected Health Information.
 
 KRITIS Â§8a COMPLIANCE:
     - PHI MUST NEVER appear in logs, exceptions, span attributes, or message queues.
-    - All mappings are stored exclusively via S3 Claim-Check (see ADR-011).
+    - All mappings are stored exclusively via S3 Claim-Check (see ADR-005).
     - If PHI_STRICT_MODE=true, the worker MUST abort if spaCy is unavailable.
 """
 
@@ -192,12 +192,12 @@ class LocalAnonymizer:
 
             mapping: dict[str, str] = {}
 
-            # DESIGN DECISION â€” Counter Determinism (ADR-011):
+            # DESIGN DECISION â€” Counter Determinism:
             # Counters reset per anonymize() call. Since each OCR job is an isolated
             # invocation (one call per RabbitMQ message), <NAME_1> always starts at 1
             # within a single job's scope. Cross-job determinism is NOT required because
             # the mapping is stored per-job in S3 (mappings/{job_id}.json).
-            # This was reviewed and accepted as architecturally sound.
+            # Formal ADR documentation for this narrow counter behavior is pending.
             counters: dict[str, int] = {
                 "PER": 1, "LOC": 1, "ORG": 1, "MISC": 1, "KVNR": 1, "DATE": 1,
             }
