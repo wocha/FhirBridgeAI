@@ -29,6 +29,7 @@ ENV/
 .env.*
 !.env.example
 .aider.conf.yml
+certs/
 
 # IDEs and Editors
 .vscode/
@@ -36,15 +37,17 @@ ENV/
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea/
+.cursor/
 *.swp
 *.swo
 *~
 .DS_Store
+Thumbs.db
 
 # Local AI & Data
 data/
 !data/.gitkeep
-models/
+/models/
 .continue/
 .agents/data/
 
@@ -52,7 +55,19 @@ models/
 *.log
 docker-compose.override.yml
 
+# Test reports
+pytest-report.xml
+*.test-results.json
+
+# Local tool version pins
+.python-version
+.tool-versions
+
+# Notebook output
+.ipynb_checkpoints/
+
 # Project specific ignores
 temp_*.png
+report_*.xml
 *.pdf
 .aider*
