@@ -1,4 +1,5 @@
 sqlalchemy>=2.0.0
+asyncpg>=0.29.0
 pydantic>=2.0.0
 pydantic-settings>=2.0.0
 streamlit>=1.30.0
@@ -14,3 +15,8 @@ pydantic-settings>=2.0.0
 pydantic_settings>=2.0.0
 aioboto3
 fhir.resources
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp
+PyJWT>=2.8.0
+faker
