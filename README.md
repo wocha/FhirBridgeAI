@@ -5,7 +5,7 @@
 ## Status
 
 This is a methodology-focused active prototype, NOT production-ready.
-v0.2 demonstrates the methodical architecture work behind sovereign AI
+v0.1.0 demonstrates the methodical architecture work behind sovereign AI
 deployments in regulated healthcare environments.
 
 FhirBridgeAI should be read as a public prototype snapshot and architecture
@@ -140,7 +140,7 @@ is disclosed per `AI-USAGE.md`.
 
 The repository values explicit decision records, scoped evidence, fail-closed
 runtime design, and honest limitation tracking over product-completeness
-claims. v0.2 is therefore best evaluated as an architecture and engineering
+claims. v0.1.0 is therefore best evaluated as an architecture and engineering
 methodology release.
 
 ## License
