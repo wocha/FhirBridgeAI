@@ -77,3 +77,16 @@ report_*.xml
 *.pdf
 .aider*
 .aider*
+
+# Claude Code local state (per-developer, not for repo)
+.claude/settings.local.json
+.claude/plugins/
+.claude/projects/
+.claude/sessions/
+.claude/cache/
+.claude/backups/
+.claude/history.jsonl
+.claude/.credentials.json
+
+# Claude Code temp files
+.claude.json
